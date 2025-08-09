@@ -1,0 +1,107 @@
+// Interval Parsing Grammar for the information section of a Troika DAT
+// file. This parses the footer (which specifies the DAT version and file
+// table location) and read the file entries, which allows reconstructing
+// the directory structure. The actual file data is stored elsewhere in the
+// file, at locations indicated by the entries.
+
+// The pre/postamble allows the IPG compiler to build this file into a
+// simple JavaScript program that will dump information about the entries
+// of ToEE1.dat. The intention of this file is mainly for documentation,
+// though. A Rust parser can also be generated, although the pre/postable
+// would be nonsensical there.
+
+// The IPG compiler targeted is available at:
+//
+//     https://github.com/derekelkins/ipgcc
+
+const fs = require("node:fs");
+
+function empty_guid() {
+  return {guid_bytes: Array.fill(0, 0, 16)};
+}
+
+function make_guid(bytes) {
+  return {guid_bytes: new Uint8Array(bytes)};
+}
+  
+function decode_ascii(bytes) {
+  return new TextDecoder("ascii").decode(new Uint8Array(bytes));
+}
+
+%preamble_end
+
+DAT ->
+  Entries(Footer.table_size)
+  { entries = Entries.entries }
+  GUID(Footer.version)[Footer.START - 12, Footer.START+4]
+    { guid = GUID.value }
+  Footer[EOI-12, EOI]
+    { version = Footer.version };
+
+Footer ->
+  Signature { version = Signature.version }
+  U32
+  U32 { table_size = U32.value };
+
+rule GUID(version : Int);
+GUID(version)
+  -> ?[ version == 0 ]
+     { value = empty_guid() }
+   / ?[ version == 1 ]
+     { bytes = * }
+     { value = make_guid(bytes) };
+
+U32 -> { bs = *[4] }
+       { value = bs[0] | (bs[1] << 8) | (bs[2] << 16) | (bs[3] << 24) };
+
+Signature
+  -> " TAD" { version = 0 }
+   / "1TAD" { version = 1 };
+
+FileTable ->
+  U32 { num_entries = U32.value }
+  repeat Entry.this {entries = values};
+
+rule Entries(table_size : Int);
+Entries(table_size) ->
+  U32[EOI - table_size, EOI - table_size + 4]
+  { num_entries = U32.value }
+  repeat Entry.this
+  { entries = values };
+
+Entry ->
+  U32
+  EntryName[U32.value]
+  { name = decode_ascii(EntryName.name) }
+  U32 // useless
+  U32 { attributes = U32.value }
+  U32 { original_size = U32.value }
+  U32 { archived_size = U32.value }
+  U32 { data_start = U32.value }
+  U32 { parent_entry = U32.value }
+  U32 { first_child_entry = U32.value }
+  U32 { next_sibling_entry = U32.value };
+
+EntryName -> { name = *[EOI-1] } "\x00";
+
+EntryData -> { data = * };
+
+%postamble_begin
+
+function display(out) {
+  console.log("DAT version " + out.version);
+  out.entries.forEach(displayEntry);
+}
+
+function test_mask(mask, entry) {
+  return (entry.attributes & mask) == mask;
+}
+
+function displayEntry(entry) {
+  is_dir = test_mask(0x400, entry);
+  is_comp = test_mask(0x2, entry);
+  name = entry.name + (is_dir ? "/" : is_comp ? "%" : "");
+  console.log(name);
+}
+
+display(DAT(fs.readFileSync("ToEE1.dat")));

@@ -1,0 +1,38 @@
+This is an implementation of a quick-and-dirty extractor for Troika DAT
+files. It has two modes, `list` and `extract`.
+
+The `list` mode simply lists the files stored in a DAT archive, showing the
+directories/files that _would_ be created in extract mode. Whether or not a
+stored file is compressed is also indicated. Usage is:
+
+  > discern-dat list FILE
+
+The `extract` mode actually extracts the entire contents of the archive.
+Usage is:
+
+  > discern-dat extract FILE
+
+An optional `-d` argument specifies a directory to extract the files to.
+This works both in `list` and `extract` mode, with the former showing the
+locations of the files that will be created including the directory.
+
+A `-v` switch will put the program into 'verbose' mode, which will print
+out some extra information while running.
+
+Some warnings:
+
+- The program makes no effort to avoid overwriting files. Be careful
+  extracting an archive if e.g. you've already extracted and edited some
+  contents.
+- Some malformed archives could cause the program to go into an infinite
+  loop reassembling the directory structure. If that happens, then verbose
+  mode will show that the program starts `Building directory tree` but
+  never makes it to `Extracting files`.
+
+Also included is an interval parsing grammar for the footer and file table
+section of a DAT file. This is included mainly as documentation, as at the
+time of this writing, only generation of JavaScript and Rust parsers are
+supported, so the Haskell parser here is hand written. Also, we don't
+really want to read the DAT contents fully into memory, but rather bounce
+around in the DAT file extracting individual portions, so a bit of a custom
+approach seems necessary.
