@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Control.Exception
+import Control.Monad
 import Options.Applicative
 import System.IO
 
@@ -56,11 +57,12 @@ act = info ((,) <$> opts <*> cmd <**> helper) desc
 main :: IO ()
 main = customExecParser p act >>= \case
   (O v dir, List file) -> do
-    (h, tree) <- prime file
+    (h, tree) <- prime v file
     hClose h
     putStrLn $ displayDirectoryTree dir tree
   (O v dir, Extract file) -> do
-    (h, tree) <- prime file
+    (h, tree) <- prime v file
+    when v $ hPutStr stderr "Extracting files\n"
     extractFromHandle h dir tree
     hClose h
   where
@@ -68,13 +70,15 @@ main = customExecParser p act >>= \case
 
 -- Common setup for both commands, opens a file and constructs the embedded
 -- directory tree.
-prime :: FilePath -> IO (Handle, DirectoryTree)
-prime file = do
+prime :: Bool -> FilePath -> IO (Handle, DirectoryTree)
+prime verbose file = do
   h <- openFile file ReadMode
   hSeek h SeekFromEnd (-12)
   foot <- getFooter h
   hSeek h SeekFromEnd . negate . fromIntegral $ tableOffset foot
+  when verbose $ hPutStr stderr "Getting entries\n"
   entries <- getEntries h . fromIntegral $ tableOffset foot
+  when verbose $ hPutStr stderr "Building directory tree\n"
   tree <- evaluate $ buildDirectoryTree entries
   pure (h, tree)
 
