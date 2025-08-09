@@ -1,3 +1,7 @@
+# Discern Dat
+
+## Info
+
 This is an implementation of a quick-and-dirty extractor for Troika DAT
 files. It has two modes, `list` and `extract`.
 
@@ -36,3 +40,19 @@ supported, so the Haskell parser here is hand written. Also, we don't
 really want to read the DAT contents fully into memory, but rather bounce
 around in the DAT file extracting individual portions, so a bit of a custom
 approach seems necessary.
+
+## Building
+
+The main program is written in Haskell. To build it, you must obtain a
+Haskell installation. Visit
+
+    https://www.haskell.org/
+
+to learn how to get set up. GHC 9.10 was used to develop this, and the
+dependencies specified are likely to require something approximately that
+new.
+
+The project is set up to build with `cabal`, and once you have a Haskell
+setup, should be able to be installed just with
+
+    cabal install discern-dat
