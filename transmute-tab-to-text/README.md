@@ -17,7 +17,7 @@ files that can be used to override the original files using e.g.
 [Temple+](https://github.com/GrognardsFromHell/TemplePlus). Then you can
 verify that your own work conforms to the strictures of the tool, which is
 likely much more feasible. It's also likely that your own work actually
-does conform to the tool's expectations, and many of the failing ToEE lines
+does conform to the tool's expectations, as many of the failing ToEE lines
 are nonsense.
 
 ## Suported formats
@@ -72,18 +72,18 @@ obviously you can have multi-line help text, but it cannot be literally put
 into the .tab file, since each entry is a _single_ line.
 
 In the .tab file, line breaks are represented as the ASCII vertical tab
-character (code 11; I'll write it \v). `transmute-tab-to-text` will
+character (code 11; I'll write it `\v`). `transmute-tab-to-text` will
 therefore parse the body text, and translate any line separators to the
 .tab format, meaning that text like
 
     Meleny
-    is
+      is
 
     nice
 
 will become
 
-    Meleny\vis\v\vnice
+    Meleny\v  is\v\vnice
 
 in the table file. In game, the text will appear similar to the multi-line
 text above.
