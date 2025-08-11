@@ -1,0 +1,41 @@
+cabal-version: 3.14
+name: transmute-tab-to-text
+version: 0.1.0.0
+synopsis: Converts between ToEE .tab files and text representations
+license: GPL-3.0-or-later
+license-file: LICENSE
+author: Dan Doel
+maintainer: dan.doel@gmail.com
+copyright: 2025
+category: Game
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+
+library temple-tab-formats
+  build-depends:
+    base ^>=4.20.1.0,
+    bytestring ^>=0.12.2.0,
+    containers ^>=0.7,
+    megaparsec ^>=9.7.0
+
+  default-extensions:
+    OverloadedStrings
+    RecordWildCards
+
+  hs-source-dirs: src
+  default-language: GHC2024
+
+  exposed-modules:
+    Temple.Tables.Help
+
+executable transmute-tab-to-text
+  main-is: Main.hs
+
+  build-depends:
+    base ^>=4.20.1.0,
+    bytestring ^>=0.12.2.0,
+    optparse-applicative ^>=0.19.0.0,
+    transmute-tab-to-text:temple-tab-formats
+
+  hs-source-dirs: exe
+  default-language: GHC2024
