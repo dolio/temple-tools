@@ -16,6 +16,14 @@
 
 const fs = require("node:fs");
 
+function is_directory(entry) {
+  return (entry.attributes & 0x400) == 0x400;
+}
+
+function is_compressed(entry) {
+  return (entry.attributes & 0x2) == 0x2;
+}
+
 function empty_guid() {
   return {guid_bytes: Array.fill(0, 0, 16)};
 }
@@ -28,12 +36,45 @@ function decode_ascii(bytes) {
   return new TextDecoder("ascii").decode(new Uint8Array(bytes));
 }
 
+function data_start(entry) {
+  return entry.data_start;
+}
+
+function data_end(entry) {
+  return entry.data_start + entry.archived_size;
+}
+
+function name(entry) {
+  return entry.name;
+}
+
+full_paths = [];
+
+function full_path(i) {
+  if (i == -1) {
+    return "dat-root";
+  } else {
+    return full_paths[i];
+  }
+}
+
+function process_entry(i, entry, data) {
+  ppath = full_path(entry.parent_entry);
+  fpath = ppath + "/" + entry.name;
+  full_paths[i] = fpath;
+
+  dpath = fpath + (is_directory(entry) ? "/" : is_compressed(entry) ? "%" : "");
+  console.log(dpath);
+
+  return 0;
+}
+
 %preamble_end
 
 DAT ->
   Entries(Footer.table_size)
   { entries = Entries.entries }
-  GUID(Footer.version)[Footer.START - 12, Footer.START+4]
+  GUID(Footer.version)[Footer.START - 16, Footer.START]
     { guid = GUID.value }
   Footer[EOI-12, EOI]
     { version = Footer.version };
@@ -67,7 +108,9 @@ Entries(table_size) ->
   U32[EOI - table_size, EOI - table_size + 4]
   { num_entries = U32.value }
   repeat Entry.this
-  { entries = values };
+  { entries = values }
+  for i = 0 to num_entries do
+    EntryData(i, entries[i])[data_start(entries[i]), data_end(entries[i])];
 
 Entry ->
   U32
@@ -84,24 +127,10 @@ Entry ->
 
 EntryName -> { name = *[EOI-1] } "\x00";
 
-EntryData -> { data = * };
+EntryData(i, entry) ->
+  { data = * }
+  { _ = process_entry(i, entry, data) };
 
 %postamble_begin
 
-function display(out) {
-  console.log("DAT version " + out.version);
-  out.entries.forEach(displayEntry);
-}
-
-function test_mask(mask, entry) {
-  return (entry.attributes & mask) == mask;
-}
-
-function displayEntry(entry) {
-  is_dir = test_mask(0x400, entry);
-  is_comp = test_mask(0x2, entry);
-  name = entry.name + (is_dir ? "/" : is_comp ? "%" : "");
-  console.log(name);
-}
-
-display(DAT(fs.readFileSync("ToEE1.dat")));
+DAT(fs.readFileSync("ToEE1.dat"));
