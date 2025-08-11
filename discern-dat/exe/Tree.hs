@@ -9,8 +9,9 @@ module Tree
 import Codec.Compression.Zlib
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as L
-import Data.ByteString.Char8 (unpack)
+import Data.ByteString.Char8 qualified as C8
 import Data.HashMap.Strict as HM
+import Data.HashSet qualified as HS
 import Data.Word
 import System.Directory
 import System.IO
@@ -56,7 +57,7 @@ insert0
   -> DirectoryTree
 insert0  _     nm _ (File _) = error msg
   where
-  msg = "bad DAT: nested under file: " ++ "/" ++ unpack nm
+  msg = "bad DAT: nested under file: " ++ "/" ++ C8.unpack nm
 insert0 [    ] nm v (Branch chl) = Branch $ HM.insert nm v chl
 insert0 (p:ps) nm v (Branch chl) = Branch $ HM.alter f p chl
   where
@@ -103,12 +104,19 @@ consume
   -> DirectoryTree
 consume  _ acc [] [           ] = acc
 consume ps acc os [           ] = consume ps acc [] $ reverse os
-consume ps acc os (ne@(n,e):es) = case HM.lookup (E.parent e) ps of
+consume ps acc os (ne@(n,e):es)
+  -- Refuse to work with a DAT if the file names look weird, like they're
+  -- absolute paths or something.
+  | C8.any (`HS.member` badChars) $ E.name e =
+      error $ "bad file name in dat: " ++ C8.unpack (E.name e)
+  | otherwise = case HM.lookup (E.parent e) ps of
   Just path
     | ps <- insert n (path ++ [E.name e]) ps ->
     consume ps (insert0 path (E.name e) (treeFromEntry e) acc) os es
   Nothing ->
     consume ps acc (ne:os) es
+  where
+  badChars = HS.fromList "\\/:"
 
 -- Creates a nested directory tree from a list of entry information.
 buildDirectoryTree :: [Entry] -> DirectoryTree
@@ -125,7 +133,7 @@ displayDirectoryTree root d0 = descend (showString root) d0 ""
   descend path (Branch ds) =
     path . showString "/\n" . foldMapWithKey f ds
     where
-    f p dt = descend (path . showString "/" . showString (unpack p)) dt
+    f p dt = descend (path . showString "/" . showString (C8.unpack p)) dt
 
 getFileData :: Handle -> FileInfo -> IO L.ByteString
 getFileData h f = do
@@ -139,6 +147,6 @@ extractFromHandle :: Handle -> FilePath -> DirectoryTree -> IO ()
 extractFromHandle h = descend where
   descend name (Branch ds) = do
     createDirectoryIfMissing True name
-    withCurrentDirectory name $ foldMapWithKey (descend . unpack) ds
+    withCurrentDirectory name $ foldMapWithKey (descend . C8.unpack) ds
   descend name (File f) = getFileData h f >>= L.writeFile name
 
