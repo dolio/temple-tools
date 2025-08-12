@@ -16,7 +16,8 @@ library temple-tab-formats
     base ^>=4.20.1.0,
     bytestring ^>=0.12.2.0,
     containers ^>=0.7,
-    megaparsec ^>=9.7.0
+    megaparsec ^>=9.7.0,
+    mtl ^>=2.3.1
 
   default-extensions:
     OverloadedStrings

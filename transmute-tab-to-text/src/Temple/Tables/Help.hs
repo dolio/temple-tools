@@ -13,6 +13,8 @@ module Temple.Tables.Help
   ) where
 
 import Control.Applicative ((<**>))
+import Control.Monad.Reader (ReaderT (..), ask)
+import Control.Monad (when)
 import Data.Bifunctor
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString qualified as W8
@@ -22,11 +24,27 @@ import Data.Char (ord, chr)
 import Data.Foldable
 import Data.Functor
 import Data.List (intersperse, isPrefixOf)
+import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Set as S hiding (fold, foldl, filter)
 import Data.Void
 import Data.Word
 import Text.Megaparsec
 import Text.Megaparsec.Byte
+
+data HelpColumn
+  = TopicTag
+  | ParentTag
+  | SpellListTags
+  | Title
+  | Body
+  deriving (Eq, Ord, Show)
+
+colName :: HelpColumn -> String
+colName TopicTag = "topic tag"
+colName ParentTag = "parent tag"
+colName SpellListTags = "spell list tags"
+colName Title = "title"
+colName Body = "body"
 
 -- Information from a help table entry
 --
@@ -46,8 +64,27 @@ data HelpEntry
   , helpBody          :: [ByteString] -- body text, lines
   }
 
-emptyEntry :: HelpEntry
-emptyEntry = HelpEntry "" "" [] "" []
+-- As above, but all fields are optional, to facilitate construction.
+data PartialHelpEntry
+  = PHelpEntry
+  { pHelpTopicTag      :: Maybe ByteString
+  , pHelpParentTag     :: Maybe ByteString
+  , pHelpSpellListTags :: Maybe [ByteString]
+  , pHelpTitle         :: Maybe ByteString
+  , pHelpBody          :: Maybe [ByteString]
+  }
+
+nullEntry :: PartialHelpEntry
+nullEntry = PHelpEntry Nothing Nothing Nothing Nothing Nothing
+
+finalize :: PartialHelpEntry -> Maybe HelpEntry
+finalize PHelpEntry {..} = do
+  helpTopicTag <- pHelpTopicTag
+  let helpParentTag = fromMaybe "" pHelpParentTag
+      helpSpellListTags = fromMaybe [] pHelpSpellListTags
+  helpTitle <- pHelpTitle
+  helpBody <- pHelpBody
+  pure HelpEntry {..}
 
 isEmptyEntry :: HelpEntry -> Bool
 isEmptyEntry (HelpEntry { .. })
@@ -144,23 +181,36 @@ prettyEntries :: [HelpEntry] -> Builder
 prettyEntries =
   intercalate (char8 '\n') . fmap prettyEntry . filter (not . isEmptyEntry)
 
-type Parser = Parsec Void ByteString
+data HelpError
+  = BadColumn HelpColumn Int
+  | BadEntry
+  deriving (Eq, Ord, Show)
 
-runParserPretty :: Parser a -> String -> ByteString -> Either String a
-runParserPretty p name input =
-  first errorBundlePretty $ runParser p name input
+instance ShowErrorComponent HelpError where
+  showErrorComponent (BadColumn col _) =
+    "This " ++ colName col ++ " column looks strange to me"
+  showErrorComponent BadEntry = "This whole help entry seems wrong."
+
+  errorComponentLen (BadColumn _ len) = len
+  errorComponentLen _ = 1
+
+type HelpParser = ReaderT Bool (Parsec HelpError ByteString)
+
+runParserPretty :: HelpParser a -> String -> Bool -> ByteString -> Either String a
+runParserPretty p name strict input =
+  first errorBundlePretty $ runParser (runReaderT p strict) name input
 
 ord8 :: Char -> Word8
 ord8 = fromIntegral . ord
 
 -- Space character parsers for separation
-pspace, pspace1 :: Parser ()
+pspace, pspace1 :: HelpParser ()
 pspace = void . many $ char (ord8 ' ')
 pspace1 = void . some $ char (ord8 ' ')
 
 -- Parses a help tag. Typically these are of the form `TAG_...` with all
 -- caps. The `TAG_` prefix is not enforced here, though.
-tag :: Parser ByteString
+tag :: HelpParser ByteString
 tag = takeWhile1P (Just "Tag character") (`member` tagChars)
 
 eolbs :: Set Word8
@@ -170,17 +220,51 @@ eolbs = fromList $ unpack "\r\n"
 -- Help table parser
 -- -----------------
 
+colEnder :: Set Word8
+colEnder = fromList $ unpack "\t\r\n"
+
+-- Promotes a parser to one that must saturate a column in a table. The
+-- name should be a descriptive name of the column.
+--
+-- The parser is run, and a lookahead is used to ensure that a column break
+-- follows. If this fails, then an error recovery is performed.
+--
+-- In the error recovery, we check if we're in strict parsing mode. If so,
+-- the error is registered for later reporting. In either case, we consume
+-- input until the next column break so that we can continue analyzing the
+-- file.
+--
+-- Note: the skip on error recovery checks for _either_ tab or linebreaks,
+-- to make sure we don't 'recover' beyond the end of the line.
+column :: HelpColumn -> HelpParser a -> HelpParser (Maybe a)
+column col p =
+  label (colName col) . withRecovery h $ Just <$> p <* lookAhead colbreak
+  where
+  colbreak = void tab <|> void eol
+
+  remapError len (TrivialError off _ _) = badColumn off len col
+  remapError _ err = err
+
+  h err = Nothing <$ lookAhead eof <|> do
+    strict <- ask
+    rest <- takeWhileP Nothing (`notMember` colEnder)
+    when strict . registerParseError $ remapError (W8.length rest) err
+    pure Nothing
+
 -- Parses a column expected to have a single tag in it.
-singleTagColumn :: Parser ByteString
-singleTagColumn = pspace *> tag <* pspace
+singleTagColumn :: HelpColumn -> HelpParser (Maybe ByteString)
+singleTagColumn col = column col $ pspace *> tag <* pspace
 
 -- Parses a column that may have a single tag, but may also be blank.
-optionalTagColumn :: Parser ByteString
-optionalTagColumn = pspace *> (tag <|> pure "") <* pspace
+optionalTagColumn :: HelpColumn -> HelpParser (Maybe ByteString)
+optionalTagColumn col =
+  column col $ do
+    pspace
+    tag <|> pure ""
 
 -- Parses a column expected to have multiple tags separated by space.
-multiTagColumn :: Parser [ByteString]
-multiTagColumn = pspace *> sepEndBy tag sep
+multiTagColumn :: HelpColumn -> HelpParser (Maybe [ByteString])
+multiTagColumn col = column col $ pspace *> sepEndBy tag sep
   where
   seps = fromList $ unpack ", "
   sep = takeWhile1P Nothing (`member` seps)
@@ -188,20 +272,19 @@ multiTagColumn = pspace *> sepEndBy tag sep
 -- Parses a column expected to have relatively arbitrary text. Naturally,
 -- that text _cannot_ include tabs or line break characters. This also
 -- consumes leading and trailing space in the column.
-textColumn :: Parser ByteString
-textColumn = pspace *> text <* pspace
+textColumn :: HelpColumn -> HelpParser (Maybe ByteString)
+textColumn col = column col $ pspace *> text <* pspace
   where
-  ender = fromList $ unpack "\t\r\n"
   trim = C8.dropWhileEnd (== ' ')
-  text = trim <$> takeWhileP Nothing (`notMember` ender)
+  text = trim <$> takeWhileP Nothing (`notMember` colEnder)
 
 -- Parses a column that includes multi-paragraph text. This is encoded
 -- specially, since it can include neither tab nor actual line break
 -- characters. Each string in the result is a paragraph in the column. The
 -- entire column contents are yielded, no trimming is performed, since it
 -- might be necessary for getting in-game help laid out correctly.
-paraColumn :: Parser [ByteString]
-paraColumn = para `sepBy` string "\x0b"
+paraColumn :: HelpColumn -> HelpParser (Maybe [ByteString])
+paraColumn col = column col $ para `sepBy` string "\x0b"
   where
   -- Separator characters for paragraphs. \x0b is vertical tab, used in
   -- place of newlines in the embedded text. Others have special meaning in
@@ -211,57 +294,70 @@ paraColumn = para `sepBy` string "\x0b"
   para = takeWhileP Nothing (`notMember` seps)
 
 -- Parses a line of a help table into a `HelpEntry`
-parseEntryLine :: Parser HelpEntry
+parseEntryLine :: HelpParser PartialHelpEntry
 parseEntryLine = do
-  helpTopicTag <- label "entry tag" singleTagColumn
+  pHelpTopicTag <- singleTagColumn TopicTag
   tab
-  helpParentTag <- label "parent tag" optionalTagColumn
+  pHelpParentTag <- optionalTagColumn ParentTag
   tab
   -- note: ignored
   label "prev tag" $ takeWhileP Nothing (/= ord8 '\t')
   tab
-  helpSpellListTags <- label "spell lists" multiTagColumn
+  pHelpSpellListTags <- multiTagColumn SpellListTags
   tab
-  helpTitle <- label "title" textColumn
+  pHelpTitle <- textColumn Title
   tab
-  helpBody <- label "body" paraColumn
-  pure $ HelpEntry {..}
+  pHelpBody <- paraColumn Body
+  pure $ PHelpEntry {..}
 
 -- Gets the contents of the rest of the line, not parsing the eol
-line :: Parser ByteString
+line :: HelpParser ByteString
 line = takeWhileP Nothing (`notMember` eolbs)
 
-trimmedLine :: Parser ByteString
+trimmedLine :: HelpParser ByteString
 trimmedLine = trim <$> line where trim = C8.dropWhileEnd (== ' ')
 
-skipRestOfLine :: a -> b -> Parser a
-skipRestOfLine x _ = x <$ line
+badColumn :: Int -> Int -> HelpColumn -> ParseError s HelpError
+badColumn off len col =
+  FancyError off . singleton . ErrorCustom $ BadColumn col len
+
+badEntry :: Int -> ParseError s HelpError
+badEntry off = FancyError off . singleton $ ErrorCustom BadEntry
 
 -- Parses an entire help table
-parseHelpTable :: Parser [HelpEntry]
-parseHelpTable = recovered `sepEndBy` eol <* eof
+parseHelpTable :: HelpParser [HelpEntry]
+parseHelpTable =
+  mapMaybe (finalize =<<) <$> recovered `sepEndBy` eol <* eof
   where
-  recovered = withRecovery (skipRestOfLine emptyEntry) parseEntryLine
+  recovered = withRecovery h $ Just <$> parseEntryLine
+
+  remapError (TrivialError off _ _) = badEntry off
+  remapError err = err
+
+  h err = Nothing <$ lookAhead eof <|> do
+    strict <- ask
+    when strict . registerParseError $ remapError err
+    Nothing <$ line -- skip to end of line
 
 -- --------------------------
 -- Human readable help parser
 -- --------------------------
 
-field :: ByteString -> Parser a -> Parser a
+field :: ByteString -> HelpParser a -> HelpParser a
 field name content = label (C8.unpack name) $ do
   try $ string name *> hspace *> string ":"
   hspace *> content <* hspace <* eol
 
-singleTagField :: ByteString -> Parser ByteString
+singleTagField :: ByteString -> HelpParser ByteString
 singleTagField name = field name tag
 
-optionalTagField :: ByteString -> Parser ByteString
+optionalTagField :: ByteString -> HelpParser ByteString
 optionalTagField name = field name (tag <|> pure "")
 
-multiTagField :: ByteString -> Parser [ByteString]
+multiTagField :: ByteString -> HelpParser [ByteString]
 multiTagField name = field name (tag `sepBy` hspace)
 
-textField :: ByteString -> Parser ByteString
+textField :: ByteString -> HelpParser ByteString
 textField name = field name trimmedLine
 
 -- Parses a human readable help entry. These are of the form
@@ -290,10 +386,10 @@ textField name = field name trimmedLine
 -- would interfere with the possibility of getting help text laid out
 -- appropriately in the game UI. Other fields will be trimmed of whitespace
 -- somewhat.
-parseTextEntry :: Parser HelpEntry
+parseTextEntry :: HelpParser PartialHelpEntry
 parseTextEntry = applied <$> (opener *> fields <**> body)
   where
-  applied = foldl (\e f -> f e) emptyEntry
+  applied = foldl (\e f -> f e) nullEntry
   opener = void $ string "{{{" *> hspace *> eol
   bodyBegin = void $ string "|||" *> hspace *> eol
   closer = void $ string "}}}" *> hspace *> eol
@@ -307,21 +403,50 @@ parseTextEntry = applied <$> (opener *> fields <**> body)
       , id <$ hspace <* eol -- empty line
       ]
 
-  updateTopic tag entry = entry { helpTopicTag = tag }
-  updateParent tag entry = entry { helpParentTag = tag }
-  updateSpells tags entry = entry { helpSpellListTags = tags }
-  updateTitle text entry = entry { helpTitle = text }
-  updateBody paras entry = entry { helpBody = paras }
+  updateTopic tag entry = entry { pHelpTopicTag = Just tag }
+  updateParent tag entry = entry { pHelpParentTag = Just tag }
+  updateSpells tags entry = entry { pHelpSpellListTags = Just tags }
+  updateTitle text entry = entry { pHelpTitle = Just text }
+  updateBody paras entry = entry { pHelpBody = Just paras }
 
   body = (:) . updateBody <$> manyTill (line <* eol) closer
 
-parseEntryFile :: Parser [HelpEntry]
-parseEntryFile = sepEndBy parseTextEntry (many $ hspace <* eol) <* eof
+parseEntryFile :: HelpParser [HelpEntry]
+parseEntryFile =
+  mapMaybe finalize <$> sepEndBy parseTextEntry (many $ hspace <* eol) <* eof
 
-readEntryFile :: String -> ByteString -> Either String [HelpEntry]
-readEntryFile name input =
-  first errorBundlePretty $ runParser parseEntryFile name input
+formatTableError ::
+  Maybe String -> SourcePos -> ParseError ByteString HelpError -> String
+formatTableError mline spos err
+  = ppos -- file location
+  . nl
+  . dispLine
+  . nl
+  . showString (parseErrorTextPretty err)
+  . nl
+  $ ""
+  where
+  nl = showString "\n"
+  ppos = showString $ sourcePosPretty spos
 
-readHelpTable :: String -> ByteString -> Either String [HelpEntry]
-readHelpTable name input =
-  first errorBundlePretty $ runParser parseHelpTable name input
+  dispLine = case mline of
+    Nothing -> id
+    Just line -> case slice line . unPos $ sourceColumn spos of
+      (snip, pad) ->
+        showString snip . nl . showString (replicate (pad-1) ' ') . ('^':)
+
+  slice line col
+    | length line < 80 = (line, col)
+  slice line col
+    | col > 40 = ("..." ++ Prelude.take 74 (Prelude.drop (col - 34) line) ++ "...", 37)
+    | otherwise = (Prelude.take 80 line, col)
+
+readEntryFile :: Bool -> String -> ByteString -> Either String [HelpEntry]
+readEntryFile strict name input
+  = first errorBundlePretty
+  $ runParser (runReaderT parseEntryFile strict) name input
+
+readHelpTable :: Bool -> String -> ByteString -> Either String [HelpEntry]
+readHelpTable strict name input
+  = first (errorBundlePrettyWith formatTableError)
+  $ runParser (runReaderT parseHelpTable strict) name input

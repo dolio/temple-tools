@@ -60,8 +60,14 @@ modeOpt = asum
   , pure Forward
   ]
 
-args :: Parser (Mode, Format, FilePath, FilePath)
-args = (,,,) <$> modeOpt <*> formatOpt <*> inputOpt <*> outputOpt
+strictSwitch :: Parser Bool
+strictSwitch = switch
+             $ long "strict"
+            <> help "don't ignore malformed entries"
+
+args :: Parser (Bool, Mode, Format, FilePath, FilePath)
+args =
+  (,,,,) <$> strictSwitch <*> modeOpt <*> formatOpt <*> inputOpt <*> outputOpt
 
 data Codec where
   Codec :: (FilePath -> ByteString -> Either String e)
@@ -70,8 +76,8 @@ data Codec where
 
 main :: IO ()
 main = execParser (info (args <**> helper) desc) >>= \case
-  (mo, fmt, i, o)
-    | Codec dec enc <- resolveCodec fmt mo -> do
+  (strict, mo, fmt, i, o)
+    | Codec dec enc <- resolveCodec strict fmt mo -> do
       readFile i >>= \input -> case dec i input of
         Left msg -> do
           hPutStrLn stderr "The spell fizzles"
@@ -89,15 +95,15 @@ main = execParser (info (args <**> helper) desc) >>= \case
 myDesc =
   "Tool for translating between ToEE table files and more readable formats"
 
-resolveCodec :: Format -> Mode -> Codec
-resolveCodec Help TestTab
-  = Codec readHelpTable writeHelpTable
-resolveCodec Help TestText
-  = Codec readEntryFile prettyEntries
-resolveCodec Help Forward
-  = Codec readHelpTable prettyEntries
-resolveCodec Help Reverse
-  = Codec readEntryFile writeHelpTable
+resolveCodec :: Bool -> Format -> Mode -> Codec
+resolveCodec strict Help TestTab
+  = Codec (readHelpTable strict) writeHelpTable
+resolveCodec strict Help TestText
+  = Codec (readEntryFile strict) prettyEntries
+resolveCodec strict Help Forward
+  = Codec (readHelpTable strict) prettyEntries
+resolveCodec strict Help Reverse
+  = Codec (readEntryFile strict) writeHelpTable
 
 writeBinaryFile :: FilePath -> String -> IO ()
 writeBinaryFile file str = withBinaryFile file WriteMode (flip hPutStr str)
