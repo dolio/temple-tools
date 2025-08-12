@@ -143,7 +143,7 @@ encodeEntry (HelpEntry {..}) =
   encodeBody = intercalate (char8 '\x0b') . fmap byteString
 
 writeHelpTable :: [HelpEntry] -> Builder
-writeHelpTable = intercalate (char8 '\n') . fmap encodeEntry
+writeHelpTable = fold . fmap ((<> char8 '\n') . encodeEntry)
 
 -- Renders a help entry in a human readable textual format
 prettyEntry :: HelpEntry -> Builder
