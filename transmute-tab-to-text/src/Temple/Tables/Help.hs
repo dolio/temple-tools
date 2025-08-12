@@ -46,6 +46,13 @@ colName SpellListTags = "spell list tags"
 colName Title = "title"
 colName Body = "body"
 
+colField :: HelpColumn -> ByteString
+colField TopicTag = "topic-tag"
+colField ParentTag = "parent-tag"
+colField SpellListTags = "spell-lists"
+colField Title = "title"
+colField Body = "body"
+
 -- Information from a help table entry
 --
 -- Note: the actual help table has one additional column between parent and
@@ -183,13 +190,29 @@ prettyEntries =
 
 data HelpError
   = BadColumn HelpColumn Int
+  | TabInTextField HelpColumn
   | BadEntry
   deriving (Eq, Ord, Show)
+
+badColumn :: Int -> Int -> HelpColumn -> ParseError s HelpError
+badColumn off len col =
+  FancyError off . singleton . ErrorCustom $ BadColumn col len
+
+tabInTextField :: Int -> HelpColumn -> ParseError s HelpError
+tabInTextField off col =
+  FancyError off . singleton . ErrorCustom $ TabInTextField col
+
+badEntry :: Int -> ParseError s HelpError
+badEntry off = FancyError off . singleton $ ErrorCustom BadEntry
+
 
 instance ShowErrorComponent HelpError where
   showErrorComponent (BadColumn col _) =
     "This " ++ colName col ++ " column looks strange to me"
   showErrorComponent BadEntry = "This whole help entry seems wrong."
+  showErrorComponent (TabInTextField col) =
+    "A tab in this " ++ colName col ++ " field will produce " ++
+    "an incorrect .tab file."
 
   errorComponentLen (BadColumn _ len) = len
   errorComponentLen _ = 1
@@ -310,20 +333,6 @@ parseEntryLine = do
   pHelpBody <- paraColumn Body
   pure $ PHelpEntry {..}
 
--- Gets the contents of the rest of the line, not parsing the eol
-line :: HelpParser ByteString
-line = takeWhileP Nothing (`notMember` eolbs)
-
-trimmedLine :: HelpParser ByteString
-trimmedLine = trim <$> line where trim = C8.dropWhileEnd (== ' ')
-
-badColumn :: Int -> Int -> HelpColumn -> ParseError s HelpError
-badColumn off len col =
-  FancyError off . singleton . ErrorCustom $ BadColumn col len
-
-badEntry :: Int -> ParseError s HelpError
-badEntry off = FancyError off . singleton $ ErrorCustom BadEntry
-
 -- Parses an entire help table
 parseHelpTable :: HelpParser [HelpEntry]
 parseHelpTable =
@@ -337,28 +346,52 @@ parseHelpTable =
   h err = Nothing <$ lookAhead eof <|> do
     strict <- ask
     when strict . registerParseError $ remapError err
-    Nothing <$ line -- skip to end of line
+    Nothing <$ takeWhileP Nothing (`notMember` eolbs) -- skip to end of line
 
 -- --------------------------
 -- Human readable help parser
 -- --------------------------
 
-field :: ByteString -> HelpParser a -> HelpParser a
-field name content = label (C8.unpack name) $ do
-  try $ string name *> hspace *> string ":"
+-- Gets the contents of the rest of the line, not parsing the eol
+--
+-- Checks for included tabs, since they'll cause problems when translating
+-- to table files. The column is used in error reporting.
+line :: HelpColumn -> HelpParser ByteString
+line col = checkTabs =<< takeWhileP Nothing (`notMember` eolbs)
+  where
+  checkTabs line =
+    line <$
+      case C8.elemIndex '\t' line of
+        Nothing -> pure ()
+        Just i -> do
+          off <- getOffset
+          registerParseError $ tabInTextField (off - C8.length line + i) col
+
+trimmedLine :: HelpColumn -> HelpParser ByteString
+trimmedLine col = C8.dropWhileEnd (== ' ') <$> line col
+
+-- Parses a field entry in the first portion of the textual help
+-- representation. Try is used to delay committing to an entry until the
+-- entire field name is parsed, so that a choice of orders is supported.
+--
+-- Once the field is committed to, it is expected to parse the entire line,
+-- then the end of line is consumed by this parser.
+field :: HelpColumn -> HelpParser a -> HelpParser a
+field col content = label (colName col) $ do
+  try $ string (colField col) *> hspace *> string ":"
   hspace *> content <* hspace <* eol
 
-singleTagField :: ByteString -> HelpParser ByteString
-singleTagField name = field name tag
+singleTagField :: HelpColumn -> HelpParser ByteString
+singleTagField col = field col tag
 
-optionalTagField :: ByteString -> HelpParser ByteString
-optionalTagField name = field name (tag <|> pure "")
+optionalTagField :: HelpColumn -> HelpParser ByteString
+optionalTagField col = field col (tag <|> pure "")
 
-multiTagField :: ByteString -> HelpParser [ByteString]
-multiTagField name = field name (tag `sepBy` hspace)
+multiTagField :: HelpColumn -> HelpParser [ByteString]
+multiTagField col = field col (tag `sepBy` hspace)
 
-textField :: ByteString -> HelpParser ByteString
-textField name = field name trimmedLine
+textField :: HelpColumn -> HelpParser ByteString
+textField col = field col $ trimmedLine col
 
 -- Parses a human readable help entry. These are of the form
 --
@@ -396,10 +429,10 @@ parseTextEntry = applied <$> (opener *> fields <**> body)
 
   fields = flip manyTill bodyBegin $
     choice
-      [ updateTopic <$> singleTagField "topic-tag"
-      , updateParent <$> optionalTagField "parent-tag"
-      , updateSpells <$> multiTagField "spell-lists"
-      , updateTitle <$> textField "title"
+      [ updateTopic <$> singleTagField TopicTag
+      , updateParent <$> optionalTagField ParentTag
+      , updateSpells <$> multiTagField SpellListTags
+      , updateTitle <$> textField Title
       , id <$ hspace <* eol -- empty line
       ]
 
@@ -409,7 +442,7 @@ parseTextEntry = applied <$> (opener *> fields <**> body)
   updateTitle text entry = entry { pHelpTitle = Just text }
   updateBody paras entry = entry { pHelpBody = Just paras }
 
-  body = (:) . updateBody <$> manyTill (line <* eol) closer
+  body = (:) . updateBody <$> manyTill (line Body <* eol) closer
 
 parseEntryFile :: HelpParser [HelpEntry]
 parseEntryFile =
