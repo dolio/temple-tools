@@ -1,0 +1,27 @@
+cabal-version: 3.14
+name: knowledge-objects
+version: 0.1.0.0
+synopsis: Specification of ToEE objects
+license: GPL-3.0-or-later
+license-file: LICENSE
+author: Dan Doel
+maintainer: dan.doel@gmail.com
+copyright: 2025
+category: Game
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+
+common warnings
+  ghc-options: -Wall
+
+library
+  import: warnings
+
+  exposed-modules:
+    Temple.Objects.Spec
+
+  build-depends:
+    base ^>=4.20.1.0
+
+  hs-source-dirs: src
+  default-language: GHC2024
