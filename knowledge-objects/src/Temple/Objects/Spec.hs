@@ -1454,6 +1454,24 @@ instance Enum NpcField where
     397 -> NpcEnd
     n -> error $ "toEnum @NpcField: bad value: " ++ show n
 
+  pred (fromEnum -> n)
+    | n == 363 = toEnum 360
+    | n == 353 = error "pred @NpcField: minBound"
+    | otherwise = toEnum (n-1)
+
+  succ (fromEnum -> n)
+    | n == 360 = toEnum 363
+    | n == 397 = error "succ @NpcField: maxBound"
+    | otherwise = toEnum (n+1)
+
+  enumFrom (fromEnum -> n)
+    = fmap toEnum . filter usable $ enumFromTo n 397
+    where usable k = k /= 361 && k /= 362
+
+  enumFromTo (fromEnum -> m) (fromEnum -> n)
+    = fmap toEnum . filter usable $ enumFromTo m n
+    where usable k = k /= 361 && k /= 362
+
 instance Enum TrapField where
   fromEnum = \case
     TrapBegin        -> 398
