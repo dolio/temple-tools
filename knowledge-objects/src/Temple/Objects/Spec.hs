@@ -166,6 +166,7 @@ data FieldType
   | AbilityArrayF -- array of ability scores
   | ScriptArrayF  -- array of scripts (numbers, probably)
   | SpellArrayF   -- array of spell entries
+  deriving (Eq, Ord, Show)
 
 instance Bounded ObjectField where
   minBound = GeneralF minBound
