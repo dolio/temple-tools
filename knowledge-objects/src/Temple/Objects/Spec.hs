@@ -13,14 +13,8 @@ instance Enum CritterType where
     14 -> Npc
     n -> error $ "toEnum @Critter: bad value: " ++ show n
 
--- These are all the object types recognized by ToEE. The Enum instance
--- agrees with the enumeration number used there.
-data ObjectType
-  = Portal
-  | Container
-  | Scenery
-  | Projectile
-  | Weapon
+data ItemType
+  = Weapon
   | Ammo
   | Armor
   | Money
@@ -29,6 +23,40 @@ data ObjectType
   | Key
   | Written
   | Generic
+  deriving (Bounded, Eq, Ord, Show)
+
+instance Enum ItemType where
+  fromEnum = \case
+    Weapon  -> 4
+    Ammo    -> 5
+    Armor   -> 6
+    Money   -> 7
+    Food    -> 8
+    Scroll  -> 9
+    Key     -> 10
+    Written -> 11
+    Generic -> 12
+
+  toEnum = \case
+    4  -> Weapon
+    5  -> Ammo
+    6  -> Armor
+    7  -> Money
+    8  -> Food
+    9  -> Scroll
+    10 -> Key
+    11 -> Written
+    12 -> Generic
+    n -> error $ "toEnum @ItemType: bad value: " ++ show n
+
+-- These are all the object types recognized by ToEE. The Enum instance
+-- agrees with the enumeration number used there.
+data ObjectType
+  = Portal
+  | Container
+  | Scenery
+  | Projectile
+  | Item ItemType
   | Critter CritterType
   | Trap
   | Bag
@@ -44,17 +72,8 @@ instance Enum ObjectType where
     Container -> 1
     Scenery -> 2
     Projectile -> 3
-    Weapon -> 4
-    Ammo -> 5
-    Armor -> 6
-    Money -> 7
-    Food -> 8
-    Scroll -> 9
-    Key -> 10
-    Written -> 11
-    Generic -> 12
-    Critter Pc -> 13
-    Critter Npc -> 14
+    Item i -> fromEnum i
+    Critter c -> fromEnum c
     Trap -> 15
     Bag -> 16
 
@@ -63,15 +82,15 @@ instance Enum ObjectType where
     1 -> Container
     2 -> Scenery
     3 -> Projectile
-    4 -> Weapon
-    5 -> Ammo
-    6 -> Armor
-    7 -> Money
-    8 -> Food
-    9 -> Scroll
-    10 -> Key
-    11 -> Written
-    12 -> Generic
+    4 -> Item Weapon
+    5 -> Item Ammo
+    6 -> Item Armor
+    7 -> Item Money
+    8 -> Item Food
+    9 -> Item Scroll
+    10 -> Item Key
+    11 -> Item Written
+    12 -> Item Generic
     13 -> Critter Pc
     14 -> Critter Npc
     15 -> Trap
@@ -81,23 +100,23 @@ instance Enum ObjectType where
 -- ToEE name for object types.
 typeName :: ObjectType -> String
 typeName = \case
-  Portal      -> "obj_t_portal"
-  Container   -> "obj_t_container"
-  Scenery     -> "obj_t_scenery"
-  Projectile  -> "obj_t_projectile"
-  Weapon      -> "obj_t_weapon"
-  Ammo        -> "obj_t_ammo"
-  Armor       -> "obj_t_armor"
-  Money       -> "obj_t_money"
-  Food        -> "obj_t_food"
-  Scroll      -> "obj_t_scroll"
-  Key         -> "obj_t_key"
-  Written     -> "obj_t_written"
-  Generic     -> "obj_t_generic"
-  Critter Pc  -> "obj_t_pc"
-  Critter Npc -> "obj_t_npc"
-  Trap        -> "obj_t_trap"
-  Bag         -> "obj_t_bag"
+  Portal       -> "obj_t_portal"
+  Container    -> "obj_t_container"
+  Scenery      -> "obj_t_scenery"
+  Projectile   -> "obj_t_projectile"
+  Item Weapon  -> "obj_t_weapon"
+  Item Ammo    -> "obj_t_ammo"
+  Item Armor   -> "obj_t_armor"
+  Item Money   -> "obj_t_money"
+  Item Food    -> "obj_t_food"
+  Item Scroll  -> "obj_t_scroll"
+  Item Key     -> "obj_t_key"
+  Item Written -> "obj_t_written"
+  Item Generic -> "obj_t_generic"
+  Critter Pc   -> "obj_t_pc"
+  Critter Npc  -> "obj_t_npc"
+  Trap         -> "obj_t_trap"
+  Bag          -> "obj_t_bag"
 
 -- Object fields, split out by the type of objects they belong to.
 data ObjectField
