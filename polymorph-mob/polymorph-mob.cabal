@@ -12,7 +12,7 @@ build-type: Simple
 extra-doc-files: CHANGELOG.md
 
 common warnings
-    ghc-options: -Wall
+    ghc-options: -Wall -Wno-unused-do-bind
 
 executable polymorph-mob
     import: warnings
@@ -37,6 +37,4 @@ executable polymorph-mob
     hs-source-dirs: exe
 
     default-language: GHC2024
-    default-extensions:
-      OverloadedStrings
-      RecordWildCards
+    default-extensions: BlockArguments OverloadedStrings RecordWildCards

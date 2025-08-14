@@ -90,126 +90,30 @@ getObjectType = getWord32le >>= \case
 getBitmap :: ObjectType -> Get Bitmap
 getBitmap ty = BM <$> getByteString (type2blocks ty * 4)
 
-getW32 :: Get Value
-getW32 = W32 <$> getWord32le
+dummyByte :: String -> Get ()
+dummyByte _name = skip 1
 
-getF32 :: Get Value
-getF32 = F32 <$> getFloatle
-
-getW32x2 :: Get Value
-getW32x2 = W32x2 <$> getWord32le <*> getWord32le
-
-getW64 :: Get Value
-getW64 = W64 <$> getWord64le
-
-getB32 :: Get Value
-getB32 = B32 . (==0xffffffff) <$> getWord32le
-
-getI32 :: Get Value
-getI32 = I32 <$> getInt32le
-
-getUID :: Get Value
-getUID = UID <$> getMobUUID
+getFieldValue :: FieldType -> Get Value
+getFieldValue = \case
+  W32F   -> W32 <$> getWord32le
+  LocF   -> do dummyByte "loc" ; W32x2 <$> getWord32le <*> getWord32le
+  W64F   -> W64 <$> getWord64le
+  I32F   -> I32 <$> getInt32le
+  B32F   -> B32 . (==0xffffffff) <$> getWord32le
+  F32F   -> F32 <$> getFloatle
+  ObjF   -> do dummyByte "obj" ; UID <$> getMobUUID
+  ty     -> fail $ "unsupported field type: " ++ show ty
 
 -- Given a sequence of fields in the order they will occur, reads their values
 -- into a map.
---
--- Note: there's a leading 'dummy byte' apparently.
 getFields :: [ObjectField] -> Get (Map ObjectField Value)
-getFields fs = do skip 1 ; Map.fromList <$> traverse getField fs
+getFields fs = do Map.fromList <$> traverse getField fs
 
 -- Supported fields for a mob file
 getField :: ObjectField -> Get (ObjectField, Value)
-getField fl = (fl,) <$> case fl of
-  GeneralF Location -> getW32x2
-  GeneralF XOffset -> getF32
-  GeneralF YOffset -> getF32
-  GeneralF Transparency -> getW32
-  GeneralF ModelScale -> getW32
-  GeneralF Flags -> getW32
-  GeneralF Name -> getW32
-  GeneralF HpPts -> getW32
-  GeneralF HpAdj -> getW32
-  GeneralF HpDamage -> getW32
-  GeneralF ScriptsIdx -> fail "ScriptsIdx"
-  GeneralF Rotation -> getF32
-  GeneralF SpeedWalk -> getF32
-  GeneralF SpeedRun -> getF32
-  GeneralF Radius -> getF32
-  GeneralF RenderHeight3D -> getF32
-  GeneralF Conditions -> fail "Conditions"
-  GeneralF ConditionArg0 -> fail "ConditionArg0"
-  GeneralF PermanentMods -> fail "PermanentMods"
-  GeneralF Dispatcher -> getB32
-  GeneralF SecretdoorFlags -> getW32
-  GeneralF SecretdoorEffectname -> getW32
-  GeneralF SecretdoorDC -> getW32
-  GeneralF ZOffset -> getF32
-  GeneralF PermanentModData -> fail "PermanentModData"
+getField fl = (,) fl <$> getFieldValue (fieldType fl)
 
-  PortalF PortalFlags -> getW32
-  PortalF PortalLockDC -> getW32
-  PortalF PortalKeyId -> getW32
-  PortalF PortalNotifyNpc -> getW32
-
-  ContainerF ContainerFlags -> getW32
-  ContainerF ContainerLockDC -> getW32
-  ContainerF ContainerKeyId -> getW32
-  ContainerF ContainerInventoryNum -> getW32
-  ContainerF ContainerInventoryListIdx -> fail "ContainerInventoryListIdx"
-  ContainerF ContainerInventorySource -> getW32
-  ContainerF ContainerNotifyNpc -> getW32
-
-  SceneryF SceneryFlags -> getW32
-  SceneryF SceneryTeleportTo -> getW32
-
-  ItemF ItemFlags -> getW32
-  ItemF ItemParent -> skip 1 *> getUID
-  ItemF ItemWeight -> getW32
-  ItemF ItemWorth -> getW32
-  ItemF ItemInvLocation -> getW32
-  ItemF ItemQuantity -> getW32
-
-  WeaponF WeaponFlags -> getW32
-
-  AmmoF AmmoQuantity -> getW32
-
-  ArmorF ArmorFlags -> getW32
-  ArmorF ArmorAcAdj -> getI32
-  ArmorF ArmorMaxDexBonus -> getI32
-  ArmorF ArmorArcaneSpellFailure -> getI32
-  ArmorF ArmorArmorCheckPenalty -> getI32
-
-  MoneyF MoneyQuantity -> getW32
-
-  KeyF KeyKeyId -> getW32
-
-  CritterF CritterFlags -> getW32
-  CritterF CritterFlags2 -> getW32
-  CritterF CritterAbilitiesIdx -> fail "CritterAbilitiesIdx"
-  CritterF CritterRace -> getI32
-  CritterF CritterGender -> getI32
-  CritterF CritterPadInt1 -> getI32
-  CritterF CritterMoneyIdx -> fail "CritterMoneyIdx"
-  CritterF CritterInventoryNum -> getW32
-  CritterF CritterInventoryListIdx -> fail "CritterInventoryListIdx"
-  CritterF CritterInventorySource -> fail "CritterInventorySource"
-  CritterF CritterTeleportDest -> skip 1 *> getW32x2
-  CritterF CritterTeleportMap -> getW32
-  CritterF CritterReach -> getW32
-  CritterF CritterPadInt4 -> getI32 -- LevelupScheme?
-
-  NpcF NpcFlags -> getW32
-  NpcF NpcWaypointsIdx -> fail "NpcWaypointsIdx"
-  NpcF NpcStandpointDayINVALID -> W32 0 <$ skip 9
-  NpcF NpcStandpointNightINVALID -> W32 0 <$ skip 9
-  NpcF NpcFaction -> fail "NpcFaction"
-  NpcF NpcSubstituteInventory -> skip 1 *> getUID
-  NpcF NpcGeneratorData -> getW32
-  NpcF NpcAiFlags64 -> getW64
-  NpcF NpcStandpoints -> fail "NpcStandpoints"
-
-  fld -> fail $ "getField: unsupported field: " ++ fieldName fld
-
-decodeMob :: L.ByteString -> Mob
-decodeMob = runGet getMob
+decodeMob :: L.ByteString -> Either String Mob
+decodeMob bs = case runGetOrFail getMob bs of
+  Left (_, _, msg) -> Left msg
+  Right (_, _, mob) -> Right mob
