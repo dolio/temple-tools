@@ -219,6 +219,31 @@ fieldName = \case
   TrapF f -> trapFieldName f
   ExtraF f -> extraFieldName f
 
+hasField :: ObjectType -> ObjectField -> Bool
+hasField = \cases
+  _              (GeneralF    _) -> True
+  Portal         (PortalF     _) -> True
+  Container      (ContainerF  _) -> True
+  Scenery        (SceneryF    _) -> True
+  Projectile     (ProjectileF _) -> True
+  (Item       _) (ItemF       _) -> True
+  (Item  Weapon) (WeaponF     _) -> True
+  (Item    Ammo) (AmmoF       _) -> True
+  (Item   Armor) (ArmorF      _) -> True
+  (Item   Money) (MoneyF      _) -> True
+  (Item    Food) (FoodF       _) -> True
+  (Item  Scroll) (ScrollF     _) -> True
+  (Item     Key) (KeyF        _) -> True
+  (Item Written) (WrittenF    _) -> True
+  (Item Generic) (GenericF    _) -> True
+  (Critter    _) (CritterF    _) -> True
+  (Critter   Pc) (PcF         _) -> True
+  (Critter  Npc) (NpcF        _) -> True
+  (Trap        ) (TrapF       _) -> True
+  (Bag         ) (BagF        _) -> True
+  _              (ExtraF      _) -> True
+  _              _               -> False
+
 -- --------------------
 -- Specific field types
 -- --------------------
