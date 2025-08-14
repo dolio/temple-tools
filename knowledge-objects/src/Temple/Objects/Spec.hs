@@ -671,8 +671,8 @@ data NpcField
   | NpcWhoHitMeLast
   | NpcWaypointsIdx
   | NpcWaypointCurrent
-  -- | NpcStandpointDayINTERNALDONOTUSE
-  -- | NpcStandpointNightINTERNALDONOTUSE
+  | NpcStandpointDayINVALID
+  | NpcStandpointNightINVALID
   | NpcFaction
   | NpcRetailPriceMultiplier
   | NpcSubstituteInventory
@@ -1412,8 +1412,8 @@ instance Enum NpcField where
     NpcWhoHitMeLast                    -> 358
     NpcWaypointsIdx                    -> 359
     NpcWaypointCurrent                 -> 360
-    -- NpcStandpointDayINTERNALDONOTUSE   -> 361
-    -- NpcStandpointNightINTERNALDONOTUSE -> 362
+    NpcStandpointDayINVALID            -> 361
+    NpcStandpointNightINVALID          -> 362
     NpcFaction                         -> 363
     NpcRetailPriceMultiplier           -> 364
     NpcSubstituteInventory             -> 365
@@ -1459,8 +1459,8 @@ instance Enum NpcField where
     358 -> NpcWhoHitMeLast
     359 -> NpcWaypointsIdx
     360 -> NpcWaypointCurrent
-    -- 361 -> NpcStandpointDayINTERNALDONOTUSE
-    -- 362 -> NpcStandpointNightINTERNALDONOTUSE
+    361 -> NpcStandpointDayINVALID
+    362 -> NpcStandpointNightINVALID
     363 -> NpcFaction
     364 -> NpcRetailPriceMultiplier
     365 -> NpcSubstituteInventory
@@ -1497,24 +1497,6 @@ instance Enum NpcField where
     396 -> NpcPadInt64Arr5
     397 -> NpcEnd
     n -> error $ "toEnum @NpcField: bad value: " ++ show n
-
-  pred (fromEnum -> n)
-    | n == 363 = toEnum 360
-    | n == 353 = error "pred @NpcField: minBound"
-    | otherwise = toEnum (n-1)
-
-  succ (fromEnum -> n)
-    | n == 360 = toEnum 363
-    | n == 397 = error "succ @NpcField: maxBound"
-    | otherwise = toEnum (n+1)
-
-  enumFrom (fromEnum -> n)
-    = fmap toEnum . filter usable $ enumFromTo n 397
-    where usable k = k /= 361 && k /= 362
-
-  enumFromTo (fromEnum -> m) (fromEnum -> n)
-    = fmap toEnum . filter usable $ enumFromTo m n
-    where usable k = k /= 361 && k /= 362
 
 instance Enum TrapField where
   fromEnum = \case
@@ -2044,6 +2026,11 @@ npcFieldName = \case
   NpcPadInt64Arr4          -> "obj_f_npc_pad_i64as_4"
   NpcPadInt64Arr5          -> "obj_f_npc_pad_i64as_5"
   NpcEnd                   -> "obj_f_npc_end"
+
+  NpcStandpointDayINVALID  ->
+    "obj_f_npc_standpoint_day_INTERNAL_DO_NOT_USE"
+  NpcStandpointNightINVALID ->
+    "obj_f_npc_standpoint_night_INTERNAL_DO_NOT_USE"
 
 trapFieldName :: TrapField -> String
 trapFieldName = \case
