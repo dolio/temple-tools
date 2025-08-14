@@ -344,7 +344,7 @@ data GeneralField
 data PortalField
   = PortalBegin
   | PortalFlags
-  | PortalLockDc
+  | PortalLockDC
   | PortalKeyId
   | PortalNotifyNpc
   | PortalPadInt1
@@ -361,7 +361,7 @@ data PortalField
 data ContainerField
   = ContainerBegin
   | ContainerFlags
-  | ContainerLockDc
+  | ContainerLockDC
   | ContainerKeyId
   | ContainerInventoryNum
   | ContainerInventoryListIdx
@@ -753,7 +753,7 @@ instance Enum PortalField where
   fromEnum = \case
     PortalBegin -> 88
     PortalFlags -> 89
-    PortalLockDc -> 90
+    PortalLockDC -> 90
     PortalKeyId -> 91
     PortalNotifyNpc -> 92
     PortalPadInt1 -> 93
@@ -769,7 +769,7 @@ instance Enum PortalField where
   toEnum = \case
     88 -> PortalBegin
     89 -> PortalFlags
-    90 -> PortalLockDc
+    90 -> PortalLockDC
     91 -> PortalKeyId
     92 -> PortalNotifyNpc
     93 -> PortalPadInt1
@@ -787,7 +787,7 @@ instance Enum ContainerField where
   fromEnum = \case
     ContainerBegin            -> 102
     ContainerFlags            -> 103
-    ContainerLockDc           -> 104
+    ContainerLockDC           -> 104
     ContainerKeyId            -> 105
     ContainerInventoryNum     -> 106
     ContainerInventoryListIdx -> 107
@@ -808,7 +808,7 @@ instance Enum ContainerField where
   toEnum = \case
     102 -> ContainerBegin
     103 -> ContainerFlags
-    104 -> ContainerLockDc
+    104 -> ContainerLockDC
     105 -> ContainerKeyId
     106 -> ContainerInventoryNum
     107 -> ContainerInventoryListIdx
@@ -831,7 +831,7 @@ containerFlagName :: ContainerField -> String
 containerFlagName = \case
   ContainerBegin            -> "obj_f_container_begin"
   ContainerFlags            -> "obj_f_container_flags"
-  ContainerLockDc           -> "obj_f_container_lock_dc"
+  ContainerLockDC           -> "obj_f_container_lock_dc"
   ContainerKeyId            -> "obj_f_container_key_id"
   ContainerInventoryNum     -> "obj_f_container_inventory_num"
   ContainerInventoryListIdx -> "obj_f_container_inventory_list_idx"
@@ -1669,7 +1669,7 @@ portalFieldName :: PortalField -> String
 portalFieldName = \case
   PortalBegin        -> "obj_f_portal_begin"
   PortalFlags        -> "obj_f_portal_flags"
-  PortalLockDc       -> "obj_f_portal_lock_dc"
+  PortalLockDC       -> "obj_f_portal_lock_dc"
   PortalKeyId        -> "obj_f_portal_key_id"
   PortalNotifyNpc    -> "obj_f_portal_notify_npc"
   PortalPadInt1      -> "obj_f_portal_pad_i_1"
@@ -1686,7 +1686,7 @@ containerFieldName :: ContainerField -> String
 containerFieldName = \case
   ContainerBegin            -> "obj_f_container_begin"
   ContainerFlags            -> "obj_f_container_flags"
-  ContainerLockDc           -> "obj_f_container_lock_dc"
+  ContainerLockDC           -> "obj_f_container_lock_dc"
   ContainerKeyId            -> "obj_f_container_key_id"
   ContainerInventoryNum     -> "obj_f_container_inventory_num"
   ContainerInventoryListIdx -> "obj_f_container_inventory_list_idx"
