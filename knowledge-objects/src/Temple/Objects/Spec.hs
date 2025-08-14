@@ -143,6 +143,30 @@ data ObjectField
   | ExtraF ExtraField
   deriving (Eq, Ord, Show)
 
+-- The type of data that occurs in a field
+--
+-- Note: Temple+ says location fields are Int64, because the location is
+-- normally packed. But it seems to be stored differently in e.g. MOB files,
+-- so it's worth distinguishing.
+data FieldType
+  = BeginF        -- beginning of section
+  | EndF          -- ending of section
+  | NoneF         -- probably shouldn't be used for anything, like the above
+  | W32F          -- unsigned 32-bit integer
+  | W64F          -- unsigned 64-bit integer
+  | I32F          -- signed 32-bit integer
+  | F32F          -- 32-bit float
+  | B32F          -- 32-bit boolean representation
+  | LocF          -- location, 2 32-bit integers
+  | ObjF          -- object field (probably UUID in serialized cases)
+  | StringF       -- string
+  | W32ArrF       -- array of unsigned 32-bit integers
+  | W64ArrF       -- array of unsigned 64-bit integers
+  | ObjArrF       -- array of objects
+  | AbilityArrayF -- array of ability scores
+  | ScriptArrayF  -- array of scripts (numbers, probably)
+  | SpellArrayF   -- array of spell entries
+
 instance Bounded ObjectField where
   minBound = GeneralF minBound
   maxBound = ExtraF maxBound
@@ -624,7 +648,7 @@ data CritterField
   | CritterSkillIdx
   | CritterReach
   | CritterSubdualDamage
-  | CritterPadInt4
+  | CritterPadInt4 -- level up scheme?
   | CritterPadInt5
   | CritterSequence
   | CritterHairStyle
@@ -2070,3 +2094,521 @@ extraFieldName = \case
   Type                -> "obj_f_type"
   PrototypeHandle     -> "obj_f_prototype_handle"
 
+-- Classifies the types of fields. Currently a `Maybe` since the fields we'll
+-- be using/have information for are limited.
+fieldType :: ObjectField -> FieldType
+fieldType = \case
+  GeneralF f -> generalFieldType f
+  PortalF f -> portalFieldType f
+  ContainerF f -> containerFieldType f
+  SceneryF f -> sceneryFieldType f
+  ProjectileF f -> projectileFieldType f
+  ItemF f -> itemFieldType f
+  WeaponF f -> weaponFieldType f
+  AmmoF f -> ammoFieldType f
+  ArmorF f -> armorFieldType f
+  MoneyF f -> moneyFieldType f
+  FoodF f -> foodFieldType f
+  ScrollF f -> scrollFieldType f
+  KeyF f -> keyFieldType f
+  WrittenF f -> writtenFieldType f
+  BagF f -> bagFieldType f
+  GenericF f -> genericFieldType f
+  CritterF f -> critterFieldType f
+  PcF f -> pcFieldType f
+  NpcF f -> npcFieldType f
+  TrapF f -> trapFieldType f
+  ExtraF f -> extraFieldType f
+
+generalFieldType :: GeneralField -> FieldType
+generalFieldType = \case
+  GeneralBegin -> BeginF
+  Location -> LocF
+  XOffset -> F32F
+  YOffset -> F32F
+  ShadowArt2D -> W32F
+  BlitFlags -> W32F
+  BlitColor -> W32F
+  Transparency -> W32F
+  ModelScale -> W32F
+  LightFlags -> W32F
+  LightMaterial -> W32F
+  LightColor -> W32F
+  LightRadius -> F32F
+  LightAngleStart -> F32F
+  LightAngleEnd -> F32F
+  LightType -> W32F
+  LightXFacing -> F32F
+  LightYFacing -> F32F
+  LightZFacing -> F32F
+  LightXOffset -> F32F
+  LightYOffset -> F32F
+  LightZOffset -> F32F
+  Flags -> W32F
+  SpellFlags -> W32F
+  Name -> W32F
+  Description -> W32F
+  Size -> W32F
+  HpPts -> W32F
+  HpAdj -> W32F
+  HpDamage -> W32F
+  Material -> W32F
+  ScriptsIdx -> ScriptArrayF
+  SoundEffect -> W32F
+  Category -> W32F
+  Rotation -> F32F
+  SpeedWalk -> F32F
+  SpeedRun -> F32F
+  BaseMesh -> W32F
+  BaseAnim -> W32F
+  Radius -> F32F
+  RenderHeight3D -> F32F
+  Conditions -> W32ArrF
+  ConditionArg0 -> W32ArrF
+  PermanentMods -> W32ArrF
+  Initiative -> W32F
+  Dispatcher -> W32F
+  Subinitiative -> W32F
+  SecretdoorFlags -> W32F
+  SecretdoorEffectname -> W32F
+  SecretdoorDC -> W32F
+  PadInt7 -> W32F
+  PadInt8 -> W32F
+  PadInt9 -> W32F
+  PadInt0 -> W32F
+  ZOffset -> F32F
+  RotationPitch -> F32F
+  PadFloat3 -> F32F
+  PadFloat4 -> F32F
+  PadFloat5 -> F32F
+  PadFloat6 -> F32F
+  PadFloat7 -> F32F
+  PadFloat8 -> F32F
+  PadFloat9 -> F32F
+  PadFloat0 -> F32F
+  PadInt640 -> W64F
+  PadInt641 -> W64F
+  PadInt642 -> W64F
+  PadInt643 -> W64F
+  PadInt644 -> W64F
+  LastHitBy -> ObjF
+  PadObj1 -> ObjF
+  PadObj2 -> ObjF
+  PadObj3 -> ObjF
+  PadObj4 -> ObjF
+  PermanentModData -> W32ArrF
+  AttackTypesIdx -> W32ArrF
+  AttackBonusIdx -> W32ArrF
+  StrategyState -> W32ArrF
+  PadIntArr4 -> W32ArrF
+  PadInt64Arr0 -> W64ArrF
+  PadInt64Arr1 -> W64ArrF
+  PadInt64Arr2 -> W64ArrF
+  PadInt64Arr3 -> W64ArrF
+  PadInt64Arr4 -> W64ArrF
+  PadObjArr0 -> ObjArrF
+  PadObjArr1 -> ObjArrF
+  PadObjArr2 -> ObjArrF
+  GeneralEnd -> EndF
+
+portalFieldType :: PortalField -> FieldType
+portalFieldType = \case
+  PortalBegin -> BeginF
+  PortalFlags -> W32F
+  PortalLockDC -> W32F
+  PortalKeyId -> W32F
+  PortalNotifyNpc -> W32F
+  PortalPadInt1 -> W32F
+  PortalPadInt2 -> W32F
+  PortalPadInt3 -> W32F
+  PortalPadInt4 -> W32F
+  PortalPadInt5 -> W32F
+  PortalPadObj1 -> ObjF
+  PortalPadIntArr1 -> W32ArrF
+  PortalPadInt64Arr1 -> W64ArrF
+  PortalEnd -> EndF
+
+containerFieldType :: ContainerField -> FieldType
+containerFieldType = \case
+  ContainerBegin -> BeginF
+  ContainerFlags -> W32F
+  ContainerLockDC -> W32F
+  ContainerKeyId -> W32F
+  ContainerInventoryNum -> W32F
+  ContainerInventoryListIdx -> ObjArrF
+  ContainerInventorySource -> W32F
+  ContainerNotifyNpc -> W32F
+  ContainerPadInt1 -> W32F
+  ContainerPadInt2 -> W32F
+  ContainerPadInt3 -> W32F
+  ContainerPadInt4 -> W32F
+  ContainerPadInt5 -> W32F
+  ContainerPadObj1 -> ObjF
+  ContainerPadObj2 -> ObjF
+  ContainerPadIntArr1 -> W32ArrF
+  ContainerPadInt64Arr1 -> W64ArrF
+  ContainerPadObjArr1 -> ObjArrF
+  ContainerEnd -> EndF
+
+sceneryFieldType :: SceneryField -> FieldType
+sceneryFieldType = \case
+  SceneryBegin -> BeginF
+  SceneryFlags -> W32F
+  SceneryPadObj0 -> ObjF
+  SceneryRespawnDelay -> W32F
+  SceneryPadInt0 -> W32F
+  SceneryPadInt1 -> W32F
+  SceneryTeleportTo -> W32F
+  SceneryPadInt4 -> W32F
+  SceneryPadInt5 -> W32F
+  SceneryPadObj1 -> W32F
+  SceneryPadIntArr1 -> W32ArrF
+  SceneryPadInt64Arr1 -> W64ArrF
+  SceneryEnd -> EndF
+
+projectileFieldType :: ProjectileField -> FieldType
+projectileFieldType = \case
+  ProjectileBegin -> BeginF
+  ProjectileFlagsCombat -> W32F
+  ProjectileFlagsCombatDamage -> W32F
+  ProjectileParentWeapon -> ObjF
+  ProjectileParentAmmo -> ObjF
+  ProjectilePartSysId -> W32F
+  ProjectileAccelerationX -> F32F
+  ProjectileAccelerationY -> F32F
+  ProjectileAccelerationZ -> F32F
+  ProjectilePadInt4 -> W32F
+  ProjectilePadObj1 -> ObjF
+  ProjectilePadObj2 -> ObjF
+  ProjectilePadObj3 -> ObjF
+  ProjectilePadIntArr1 -> W32ArrF
+  ProjectilePadInt64Arr1 -> W64ArrF
+  ProjectilePadObjArr1 -> ObjArrF
+  ProjectileEnd -> EndF
+
+itemFieldType :: ItemField -> FieldType
+itemFieldType = \case
+  ItemBegin -> BeginF
+  ItemFlags -> W32F
+  ItemParent -> ObjF
+  ItemWeight -> W32F
+  ItemWorth -> W32F
+  ItemInvAid -> W32F
+  ItemInvLocation -> W32F
+  ItemGroundMesh -> W32F
+  ItemGroundAnim -> W32F
+  ItemDescriptionUnknown -> W32F
+  ItemDescriptionEffects -> W32F
+  ItemSpellIdx -> SpellArrayF
+  ItemSpellIdxFlags -> W32F
+  ItemSpellChargesIdx -> W32F
+  ItemAiAction -> W32F
+  ItemWearFlags -> W32F
+  ItemMaterialSlot -> W32F
+  ItemQuantity -> W32F
+  ItemPadInt1 -> W32F
+  ItemPadInt2 -> W32F
+  ItemPadInt3 -> W32F
+  ItemPadInt4 -> W32F
+  ItemPadInt5 -> W32F
+  ItemPadInt6 -> W32F
+  ItemPadObj1 -> ObjF
+  ItemPadObj2 -> ObjF
+  ItemPadObj3 -> ObjF
+  ItemPadObj4 -> ObjF
+  ItemPadObj5 -> ObjF
+  ItemPadWielderConditionArray -> W32ArrF
+  ItemPadWielderArgumentArray -> W32ArrF
+  ItemPadInt64Arr1 -> W64ArrF
+  ItemPadInt64Arr2 -> W64ArrF
+  ItemPadObjArr1 -> ObjArrF
+  ItemPadObjArr2 -> ObjArrF
+  ItemEnd -> EndF
+
+weaponFieldType :: WeaponField -> FieldType
+weaponFieldType = \case
+  WeaponBegin -> BeginF
+  WeaponFlags -> W32F
+  WeaponRange -> W32F
+  WeaponAmmoType -> W32F
+  WeaponAmmoConsumption -> W32F
+  WeaponMissileAid -> W32F
+  WeaponCritHitChart -> W32F
+  WeaponAttacktype -> W32F
+  WeaponDamageDice -> W32F
+  WeaponAnimtype -> W32F
+  WeaponType -> W32F
+  WeaponCritRange -> W32F
+  WeaponPadInt1 -> W32F
+  WeaponPadInt2 -> W32F
+  WeaponPadObj1 -> ObjF
+  WeaponPadObj2 -> ObjF
+  WeaponPadObj3 -> ObjF
+  WeaponPadObj4 -> ObjF
+  WeaponPadObj5 -> ObjF
+  WeaponPadIntArr1 -> W32ArrF
+  WeaponPadInt64Arr1 -> W64ArrF
+  WeaponEnd -> EndF
+
+ammoFieldType :: AmmoField -> FieldType
+ammoFieldType = \case
+  AmmoBegin -> BeginF
+  AmmoFlags -> W32F
+  AmmoQuantity -> W32F
+  AmmoType -> W32F
+  AmmoPadInt1 -> W32F
+  AmmoPadInt2 -> W32F
+  AmmoPadObj1 -> ObjF
+  AmmoPadIntArr1 -> W32ArrF
+  AmmoPadInt64Arr1 -> W64ArrF
+  AmmoEnd -> EndF
+
+armorFieldType :: ArmorField -> FieldType
+armorFieldType = \case
+  ArmorBegin -> BeginF
+  ArmorFlags -> W32F
+  ArmorAcAdj -> W32F
+  ArmorMaxDexBonus -> W32F
+  ArmorArcaneSpellFailure -> W32F
+  ArmorArmorCheckPenalty -> W32F
+  ArmorPadInt1 -> W32F
+  ArmorPadIntArr1 -> W32ArrF
+  ArmorPadInt64Arr1 -> W64ArrF
+  ArmorEnd -> EndF
+
+moneyFieldType :: MoneyField -> FieldType
+moneyFieldType = \case
+  MoneyBegin -> BeginF
+  MoneyFlags -> W32F
+  MoneyQuantity -> W32F
+  MoneyType -> W32F
+  MoneyPadInt1 -> W32F
+  MoneyPadInt2 -> W32F
+  MoneyPadInt3 -> W32F
+  MoneyPadInt4 -> W32F
+  MoneyPadInt5 -> W32F
+  MoneyPadIntArr1 -> W32ArrF
+  MoneyPadInt64Arr1 -> W64ArrF
+  MoneyEnd -> EndF
+
+foodFieldType :: FoodField -> FieldType
+foodFieldType = \case
+  FoodBegin -> BeginF
+  FoodFlags -> W32F
+  FoodPadInt1 -> W32F
+  FoodPadInt2 -> W32F
+  FoodPadIntArr1 -> W32ArrF
+  FoodPadInt64Arr1 -> W64ArrF
+  FoodEnd -> EndF
+
+scrollFieldType :: ScrollField -> FieldType
+scrollFieldType = \case
+  ScrollBegin -> BeginF
+  ScrollFlags -> W32F
+  ScrollPadInt1 -> W32F
+  ScrollPadInt2 -> W32F
+  ScrollPadIntArr1 -> W32ArrF
+  ScrollPadInt64Arr1 -> W64ArrF
+  ScrollEnd -> EndF
+
+keyFieldType :: KeyField -> FieldType
+keyFieldType = \case
+  KeyBegin -> BeginF
+  KeyKeyId -> W32F
+  KeyPadInt1 -> W32F
+  KeyPadInt2 -> W32F
+  KeyPadIntArr1 -> W32ArrF
+  KeyPadInt64Arr1 -> W64ArrF
+  KeyEnd -> EndF
+
+writtenFieldType :: WrittenField -> FieldType
+writtenFieldType = \case
+  WrittenBegin -> BeginF
+  WrittenFlags -> W32F
+  WrittenSubtype -> W32F
+  WrittenTextStartLine -> W32F
+  WrittenTextEndLine -> W32F
+  WrittenPadInt1 -> W32F
+  WrittenPadInt2 -> W32F
+  WrittenPadIntArr1 -> W32ArrF
+  WrittenPadInt64Arr1 -> W64ArrF
+  WrittenEnd -> EndF
+
+bagFieldType :: BagField -> FieldType
+bagFieldType = \case
+  BagBegin -> BeginF
+  BagFlags -> W32F
+  BagSize -> W32F
+  BagEnd -> EndF
+
+genericFieldType :: GenericField -> FieldType
+genericFieldType = \case
+  GenericBegin -> BeginF
+  GenericFlags -> W32F
+  GenericUsageBonus -> W32F
+  GenericUsageCountRemaining -> W32F
+  GenericPadIntArr1 -> W32ArrF
+  GenericPadInt64Arr1 -> W64ArrF
+  GenericEnd -> EndF
+
+critterFieldType :: CritterField -> FieldType
+critterFieldType = \case
+  CritterBegin -> BeginF
+  CritterFlags -> W32F
+  CritterFlags2 -> W32F
+  CritterAbilitiesIdx -> AbilityArrayF
+  CritterLevelIdx -> W32ArrF
+  CritterRace -> W32F
+  CritterGender -> W32F
+  CritterAge -> W32F
+  CritterHeight -> W32F
+  CritterWeight -> W32F
+  CritterExperience -> W32F
+  CritterPadInt1 -> W32F
+  CritterAlignment -> W32F
+  CritterDeity -> W32F
+  CritterDomain1 -> W32F
+  CritterDomain2 -> W32F
+  CritterAlignmentChoice -> W32F
+  CritterSchoolSpecialization -> W32F
+  CritterSpellsKnownIdx -> SpellArrayF
+  CritterSpellsMemorizedIdx -> SpellArrayF
+  CritterSpellsCastIdx -> SpellArrayF
+  CritterFeatIdx -> W32ArrF
+  CritterFeatCountIdx -> W32ArrF
+  CritterFleeingFrom -> ObjF
+  CritterPortrait -> W32F
+  CritterMoneyIdx -> W32ArrF
+  CritterInventoryNum -> W32F
+  CritterInventoryListIdx -> ObjArrF
+  CritterInventorySource -> W32F
+  CritterDescriptionUnknown -> W32F
+  CritterFollowerIdx -> ObjArrF
+  CritterTeleportDest -> LocF
+  CritterTeleportMap -> W32F
+  CritterDeathTime -> W32F
+  CritterSkillIdx -> W32ArrF
+  CritterReach -> W32F
+  CritterSubdualDamage -> W32F
+  CritterPadInt4 -> W32F
+  CritterPadInt5 -> W32F
+  CritterSequence -> W32F
+  CritterHairStyle -> W32F
+  CritterStrategy -> W32F
+  CritterPadInt3 -> W32F
+  CritterMonsterCategory -> W64F
+  CritterPadInt642 -> W64F
+  CritterPadInt643 -> W64F
+  CritterPadInt644 -> W64F
+  CritterPadInt645 -> W64F
+  CritterDamageIdx -> W32ArrF
+  CritterAttacksIdx -> W32ArrF
+  CritterSeenMaplist -> W64ArrF
+  CritterPadInt64Arr2 -> W64ArrF
+  CritterPadInt64Arr3 -> W64ArrF
+  CritterPadInt64Arr4 -> W64ArrF
+  CritterPadInt64Arr5 -> W64ArrF
+  CritterEnd -> EndF
+
+pcFieldType :: PcField -> FieldType
+pcFieldType = \case
+  PcBegin -> BeginF
+  PcFlags -> W32F
+  PcPadIntArr0 -> W32ArrF
+  PcPadInt64Arr0 -> W64ArrF
+  PcPlayerName -> StringF
+  PcGlobalFlags -> W32ArrF
+  PcGlobalVariables -> W32ArrF
+  PcVoiceIdx -> W32F
+  PcRollCount -> W32F
+  PcPadInt2 -> W32F
+  PcWeaponslotsIdx -> W32ArrF
+  PcPadIntArr2 -> W32ArrF
+  PcPadInt64Arr1 -> W64ArrF
+  PcEnd -> EndF
+
+npcFieldType :: NpcField -> FieldType
+npcFieldType = \case
+  NpcBegin -> BeginF
+  NpcFlags -> W32F
+  NpcLeader -> ObjF
+  NpcAiData -> W32F
+  NpcCombatFocus -> ObjF
+  NpcWhoHitMeLast -> ObjF
+  NpcWaypointsIdx -> W64ArrF
+  NpcWaypointCurrent -> W32F
+  NpcStandpointDayINVALID -> LocF
+  NpcStandpointNightINVALID -> LocF
+  NpcFaction -> W32ArrF
+  NpcRetailPriceMultiplier -> W32F
+  NpcSubstituteInventory -> ObjF
+  NpcReactionBase -> W32F
+  NpcChallengeRating -> W32F
+  NpcReactionPcIdx -> ObjArrF
+  NpcReactionLevelIdx -> W32ArrF
+  NpcReactionTimeIdx -> W32ArrF
+  NpcGeneratorData -> W32F
+  NpcAiListIdx -> ObjArrF
+  NpcSaveReflexesBonus -> W32F
+  NpcSaveFortitudeBonus -> W32F
+  NpcSaveWillpowerBonus -> W32F
+  NpcAcBonus -> W32F
+  NpcAddMesh -> W32F
+  NpcWaypointAnim -> W32F
+  NpcPadInt3 -> W32F
+  NpcPadInt4 -> W32F
+  NpcPadInt5 -> W32F
+  NpcAiFlags64 -> W64F
+  NpcPadInt642 -> W64F
+  NpcPadInt643 -> W64F
+  NpcPadInt644 -> W64F
+  NpcPadInt645 -> W64F
+  NpcHitdiceIdx -> W32ArrF
+  NpcAiListTypeIdx -> W32ArrF
+  NpcPadIntArr3 -> W32ArrF
+  NpcPadIntArr4 -> W32ArrF
+  NpcPadIntArr5 -> W32ArrF
+  NpcStandpoints -> W64ArrF
+  NpcPadInt64Arr2 -> W64ArrF
+  NpcPadInt64Arr3 -> W64ArrF
+  NpcPadInt64Arr4 -> W64ArrF
+  NpcPadInt64Arr5 -> W64ArrF
+  NpcEnd -> EndF
+
+trapFieldType :: TrapField -> FieldType
+trapFieldType = \case
+  TrapBegin -> BeginF
+  TrapFlags -> W32F
+  TrapDifficulty -> W32F
+  TrapPadInt2 -> W32F
+  TrapPadIntArr1 -> W32ArrF
+  TrapPadInt64Arr1 -> W64ArrF
+  TrapEnd -> EndF
+
+extraFieldType :: ExtraField -> FieldType
+extraFieldType = \case
+  TotalNormal -> NoneF
+  TransientBegin -> BeginF
+  RenderColor -> W32F
+  RenderColors -> W32F
+  RenderPalette -> W32F
+  RenderScale -> W32F
+  RenderAlpha -> AbilityArrayF
+  RenderX -> W32F
+  RenderY -> W32F
+  RenderWidth -> W32F
+  RenderHeight -> W32F
+  Palette -> W32F
+  Color -> W32F
+  Colors -> W32F
+  RenderFlags -> W32F
+  TempId -> W32F
+  LightHandle -> W32F
+  OverlayLightHandles -> W32ArrF
+  InternalFlags -> W32F
+  FindNode -> W32F
+  AnimationHandle -> W32F
+  GrappleState -> W32F
+  TransientEnd -> EndF
+  Type -> W32F
+  PrototypeHandle -> ObjF
