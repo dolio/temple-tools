@@ -47,3 +47,28 @@ will be how I work most of the time).
   methodology would be to use this tool to build your own override .tab
   files. Then you just need to ensure your own entries are understood by
   the tool, rather than any oddball ToEE ones.
+
+- polymorph-mob
+
+  This tool is used to manipulate ToEE .mob files. These are the files that
+  specify all the actual objects/creatures/etc. that occur in modules. Such
+  things are basically specified in two steps
+
+    1. A prototype for the relevant type of object is defined in protos.tab.
+       This defines a bunch of object fields that are used for 'prototypical'
+       such objects, and many individual occurrences of that prototype may
+       occur in game (including being generated dynamically).
+
+    2. A mob file refers to a prototype, but optionally overrides some of its
+       fields, and specifies certain other fields that only make sense for a
+       particular object in the game, like an actual location.
+
+  The mob files are a binary format, which makes them even less convenient to
+  work with than the prototype table. The intention of `polymorph-mob` is to
+  allow converting between more readable formats, like JSON, and the binary
+  format, so that the mobs can be edited using ordinary tools like text
+  editors (though the right information to put in one might require
+  a specialized tool, like the game itself).
+
+  At the moment, the tool only supports extracting a mob to a JSON readout,
+  and not all the possible fields are supported.
