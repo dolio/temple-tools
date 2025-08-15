@@ -163,6 +163,7 @@ data FieldType
   | W32ArrF     -- array of unsigned 32-bit integers
   | W64ArrF     -- array of unsigned 64-bit integers
   | ObjArrF     -- array of objects
+  | LocArrF     -- array of locations
   | AbilityArrF -- array of ability scores
   | ScriptArrF  -- array of scripts (numbers, probably)
   | SpellArrF   -- array of spell entries
@@ -2168,7 +2169,7 @@ generalFieldType = \case
   ConditionArg0 -> W32ArrF
   PermanentMods -> W32ArrF
   Initiative -> W32F
-  Dispatcher -> W32F
+  Dispatcher -> B32F
   Subinitiative -> W32F
   SecretdoorFlags -> W32F
   SecretdoorEffectname -> W32F
@@ -2569,7 +2570,7 @@ npcFieldType = \case
   NpcPadIntArr3 -> W32ArrF
   NpcPadIntArr4 -> W32ArrF
   NpcPadIntArr5 -> W32ArrF
-  NpcStandpoints -> W64ArrF
+  NpcStandpoints -> LocArrF
   NpcPadInt64Arr2 -> W64ArrF
   NpcPadInt64Arr3 -> W64ArrF
   NpcPadInt64Arr4 -> W64ArrF

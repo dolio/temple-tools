@@ -2,6 +2,8 @@
 module Display (displayMob) where
 
 import Data.ByteString.Builder
+import Data.Char (toLower)
+import Data.Int
 import Data.List (intersperse)
 import Data.Map.Strict (Map, toList)
 import Data.UUID
@@ -56,20 +58,25 @@ displayValue = \case
   W64 w -> string8 $ show w
   I32 i -> string8 $ show i
   F32 f -> string8 $ show f
-  B32 b -> string8 $ show b
+  B32 b -> string8 . fmap toLower $ show b
   UID u -> displayVUUID u
-  Loc x y ->
-    mconcat
-      [ byteString "{ \"locx\": "
-      , string8 $ show x
-      , byteString ", \"locy\": "
-      , string8 $ show y
-      , byteString "}"
-      ]
+  Loc x y -> displayLoc x y
+  I32Arr is -> displayArr (string8 . show) is
   W32Arr ws -> displayArr (string8 . show) ws
   W64Arr ws -> displayArr (string8 . show) ws
+  LocArr ls -> displayArr (uncurry displayLoc) ls
   ObjArr us -> displayArr displayVUUID us
   ScriptArr ss -> displayArr displayScript ss
+
+displayLoc :: Int32 -> Int32 -> Builder
+displayLoc x y =
+  mconcat
+    [ byteString "{ \"locx\": "
+    , string8 $ show x
+    , byteString ", \"locy\": "
+    , string8 $ show y
+    , byteString " }"
+    ]
 
 displayUUID :: UUID -> Builder
 displayUUID u =

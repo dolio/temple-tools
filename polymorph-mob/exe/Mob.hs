@@ -14,14 +14,16 @@ import Temple.Objects.Spec
 
 data Value
   = W32 !Word32
-  | Loc !Word32 !Word32
+  | Loc !Int32 !Int32
   | W64 !Word64
   | I32 !Int32
   | F32 !Float
   | B32 !Bool
   | UID !VUUID
+  | I32Arr [Int32]
   | W32Arr [Word32]
   | W64Arr [Word64]
+  | LocArr [(Int32, Int32)]
   | ObjArr [VUUID]
   | ScriptArr [(Word32, Word32, Word32)]
 

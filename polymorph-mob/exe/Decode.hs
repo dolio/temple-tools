@@ -102,7 +102,7 @@ dummyByte _name = skip 1
 getFieldValue :: FieldType -> Get Value
 getFieldValue = \case
   W32F        -> W32 <$> getWord32le
-  LocF        -> do dummyByte "loc" ; Loc <$> getWord32le <*> getWord32le
+  LocF        -> do dummyByte "loc" ; Loc <$> getInt32le <*> getInt32le
   W64F        -> do dummyByte "w64" ; W64 <$> getWord64le
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
@@ -112,7 +112,9 @@ getFieldValue = \case
   W64ArrF     -> W64Arr <$> getArray "word 64" 8 getWord64le
   ObjArrF     -> ObjArr <$> getArray "object" 24 getVUUID
   ScriptArrF  -> ScriptArr <$> getArray "script" 12 getScriptInfo
-  AbilityArrF -> W32Arr <$> getArray "ability" 4 getWord32le
+  AbilityArrF -> I32Arr <$> getArray "ability" 4 getInt32le
+  LocArrF     ->
+    LocArr <$> getArray "loc" 8 ((,) <$> getInt32le <*> getInt32le)
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get [a]
