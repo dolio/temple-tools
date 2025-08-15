@@ -13,12 +13,16 @@ import Temple.Objects.Spec
 
 data Value
   = W32 !Word32
-  | W32x2 !Word32 !Word32
+  | Loc !Word32 !Word32
   | W64 !Word64
   | I32 !Int32
   | F32 !Float
   | B32 !Bool
   | UID !UUID
+  | W32Arr [Word32]
+  | W64Arr [Word64]
+  | ObjArr [UUID]
+  | ScriptArr [(Word32, Word32, Word32)]
 
 data Mob
   = Mob

@@ -2,8 +2,10 @@
 module Display (displayMob) where
 
 import Data.ByteString.Builder
+import Data.List (intersperse)
 import Data.Map.Strict (Map, toList)
 import Data.UUID
+import Data.Word
 
 import Temple.Objects.Spec
 
@@ -45,13 +47,40 @@ displayValue = \case
   I32 i -> string8 $ show i
   F32 f -> string8 $ show f
   B32 b -> string8 $ show b
-  UID u -> byteString "\"" <> byteString (toASCIIBytes u) <> byteString "\""
-  W32x2 w0 w1 ->
+  UID u -> displayUUID u
+  Loc x y ->
     mconcat
-      [ byteString "["
-      , string8 $ show w0
-      , byteString ","
-      , string8 $ show w1
-      , byteString "]"
+      [ byteString "{ \"locx\": "
+      , string8 $ show x
+      , byteString ", \"locy\": "
+      , string8 $ show y
+      , byteString "}"
       ]
+  W32Arr ws -> displayArr (string8 . show) ws
+  W64Arr ws -> displayArr (string8 . show) ws
+  ObjArr us -> displayArr displayUUID us
+  ScriptArr ss -> displayArr displayScript ss
 
+displayUUID :: UUID -> Builder
+displayUUID u =
+  byteString "\"" <> byteString (toASCIIBytes u) <> byteString "\""
+
+displayArr :: (a -> Builder) -> [a] -> Builder
+displayArr de es =
+  mconcat
+    [ byteString "["
+    , mconcat . intersperse (char8 ',') $ fmap de es
+    , byteString "]"
+    ]
+
+displayScript :: (Word32, Word32, Word32) -> Builder
+displayScript (unk, count, id) =
+  mconcat
+    [ byteString "{ \"unknown\": "
+    , string8 $ show unk
+    , byteString ", \"counters\": "
+    , string8 $ show count
+    , byteString ", \"script-id\": "
+    , string8 $ show id
+    , byteString " }"
+    ]

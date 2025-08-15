@@ -74,7 +74,7 @@ checkUUID file uuid = expectedUUIDString file == uuidStr
   where
   expectedUUIDString = dropExtensions . takeFileName
 
-  uuidStr = tweak $ toString uuid
+  uuidStr = ("G_" ++) . tweak $ toString uuid
 
   tweak [] = []
   tweak ('-':cs) = '_' : tweak cs

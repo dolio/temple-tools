@@ -1,7 +1,7 @@
 
 module Decode (decodeMob) where
 
-import Control.Monad (guard, when)
+import Control.Monad (guard, when, replicateM)
 import Data.Binary.Get
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as L
@@ -9,6 +9,7 @@ import Data.Bits
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.UUID
+import Data.Word
 
 import Temple.Objects.Spec
 
@@ -95,14 +96,33 @@ dummyByte _name = skip 1
 
 getFieldValue :: FieldType -> Get Value
 getFieldValue = \case
-  W32F   -> W32 <$> getWord32le
-  LocF   -> do dummyByte "loc" ; W32x2 <$> getWord32le <*> getWord32le
-  W64F   -> W64 <$> getWord64le
-  I32F   -> I32 <$> getInt32le
-  B32F   -> B32 . (==0xffffffff) <$> getWord32le
-  F32F   -> F32 <$> getFloatle
-  ObjF   -> do dummyByte "obj" ; UID <$> getMobUUID
-  ty     -> fail $ "unsupported field type: " ++ show ty
+  W32F       -> W32 <$> getWord32le
+  LocF       -> do dummyByte "loc" ; Loc <$> getWord32le <*> getWord32le
+  W64F       -> do dummyByte "w64" ; W64 <$> getWord64le
+  I32F       -> I32 <$> getInt32le
+  B32F       -> B32 . (==0xffffffff) <$> getWord32le
+  F32F       -> F32 <$> getFloatle
+  ObjF       -> do dummyByte "obj" ; UID <$> getMobUUID
+  W32ArrF    -> W32Arr <$> getArray "word 32" 4 getWord32le
+  W64ArrF    -> W64Arr <$> getArray "word 64" 8 getWord64le
+  ObjArrF    -> ObjArr <$> getArray "object" 24 getMobUUID
+  ScriptArrF -> ScriptArr <$> getArray "script" 12 getScriptInfo
+  ty         -> fail $ "unsupported field type: " ++ show ty
+
+getArray :: String -> Word32 -> Get a -> Get [a]
+getArray name exSize elem = do
+  dummyByte name
+  fieldSize <- getWord32le
+  when (fieldSize /= exSize) . fail $
+    "unexpected field size for " ++ name ++ " array: " ++ show fieldSize
+  numFields <- getWord32le
+  _sarc <- getWord32le
+  elems <- replicateM (fromIntegral numFields) elem
+  padBlocks <- getWord32le
+  elems <$ skip (4 * fromIntegral padBlocks)
+
+getScriptInfo :: Get (Word32, Word32, Word32)
+getScriptInfo = (,,) <$> getWord32le <*> getWord32le <*> getWord32le
 
 -- Given a sequence of fields in the order they will occur, reads their values
 -- into a map.
@@ -111,7 +131,8 @@ getFields fs = do Map.fromList <$> traverse getField fs
 
 -- Supported fields for a mob file
 getField :: ObjectField -> Get (ObjectField, Value)
-getField fl = (,) fl <$> getFieldValue (fieldType fl)
+getField fl = do
+  (,) fl <$> getFieldValue (fieldType fl)
 
 decodeMob :: L.ByteString -> Either String Mob
 decodeMob bs = case runGetOrFail getMob bs of
