@@ -149,23 +149,23 @@ data ObjectField
 -- normally packed. But it seems to be stored differently in e.g. MOB files,
 -- so it's worth distinguishing.
 data FieldType
-  = BeginF        -- beginning of section
-  | EndF          -- ending of section
-  | NoneF         -- probably shouldn't be used for anything, like the above
-  | W32F          -- unsigned 32-bit integer
-  | W64F          -- unsigned 64-bit integer
-  | I32F          -- signed 32-bit integer
-  | F32F          -- 32-bit float
-  | B32F          -- 32-bit boolean representation
-  | LocF          -- location, 2 32-bit integers
-  | ObjF          -- object field (probably UUID in serialized cases)
-  | StringF       -- string
-  | W32ArrF       -- array of unsigned 32-bit integers
-  | W64ArrF       -- array of unsigned 64-bit integers
-  | ObjArrF       -- array of objects
-  | AbilityArrayF -- array of ability scores
-  | ScriptArrayF  -- array of scripts (numbers, probably)
-  | SpellArrayF   -- array of spell entries
+  = BeginF      -- beginning of section
+  | EndF        -- ending of section
+  | NoneF       -- probably shouldn't be used for anything, like the above
+  | W32F        -- unsigned 32-bit integer
+  | W64F        -- unsigned 64-bit integer
+  | I32F        -- signed 32-bit integer
+  | F32F        -- 32-bit float
+  | B32F        -- 32-bit boolean representation
+  | LocF        -- location, 2 32-bit integers
+  | ObjF        -- object field (probably UUID in serialized cases)
+  | StringF     -- string
+  | W32ArrF     -- array of unsigned 32-bit integers
+  | W64ArrF     -- array of unsigned 64-bit integers
+  | ObjArrF     -- array of objects
+  | AbilityArrF -- array of ability scores
+  | ScriptArrF  -- array of scripts (numbers, probably)
+  | SpellArrF   -- array of spell entries
   deriving (Eq, Ord, Show)
 
 instance Bounded ObjectField where
@@ -2154,7 +2154,7 @@ generalFieldType = \case
   HpAdj -> W32F
   HpDamage -> W32F
   Material -> W32F
-  ScriptsIdx -> ScriptArrayF
+  ScriptsIdx -> ScriptArrF
   SoundEffect -> W32F
   Category -> W32F
   Rotation -> F32F
@@ -2300,7 +2300,7 @@ itemFieldType = \case
   ItemGroundAnim -> W32F
   ItemDescriptionUnknown -> W32F
   ItemDescriptionEffects -> W32F
-  ItemSpellIdx -> SpellArrayF
+  ItemSpellIdx -> SpellArrF
   ItemSpellIdxFlags -> W32F
   ItemSpellChargesIdx -> W32F
   ItemAiAction -> W32F
@@ -2457,7 +2457,7 @@ critterFieldType = \case
   CritterBegin -> BeginF
   CritterFlags -> W32F
   CritterFlags2 -> W32F
-  CritterAbilitiesIdx -> AbilityArrayF
+  CritterAbilitiesIdx -> AbilityArrF
   CritterLevelIdx -> W32ArrF
   CritterRace -> W32F
   CritterGender -> W32F
@@ -2472,9 +2472,9 @@ critterFieldType = \case
   CritterDomain2 -> W32F
   CritterAlignmentChoice -> W32F
   CritterSchoolSpecialization -> W32F
-  CritterSpellsKnownIdx -> SpellArrayF
-  CritterSpellsMemorizedIdx -> SpellArrayF
-  CritterSpellsCastIdx -> SpellArrayF
+  CritterSpellsKnownIdx -> SpellArrF
+  CritterSpellsMemorizedIdx -> SpellArrF
+  CritterSpellsCastIdx -> SpellArrF
   CritterFeatIdx -> W32ArrF
   CritterFeatCountIdx -> W32ArrF
   CritterFleeingFrom -> ObjF
@@ -2594,7 +2594,7 @@ extraFieldType = \case
   RenderColors -> W32F
   RenderPalette -> W32F
   RenderScale -> W32F
-  RenderAlpha -> AbilityArrayF
+  RenderAlpha -> AbilityArrF
   RenderX -> W32F
   RenderY -> W32F
   RenderWidth -> W32F
