@@ -22,7 +22,9 @@ data Action
     , _mobIn   :: FilePath
     }
   | AnalyzeMob
-    { _mobIn   :: FilePath
+    { quietFailure  :: Bool
+    , reportSuccess :: Bool
+    , mobIn         :: FilePath
     }
 
 inputArg :: Parser FilePath
@@ -42,8 +44,11 @@ mob2json = command "mob-to-json" $ info cmd desc where
   desc = progDesc "Turn a MOB file into (somewhat) readable JSON"
 
 analyzeMob :: Mod CommandFields Action
-analyzeMob = command "analyze-mob" $ info (AnalyzeMob <$> inputArg) desc where
+analyzeMob = command "analyze-mob" $ info cmd desc where
+  cmd = AnalyzeMob <$> failure <*> success <*> inputArg
   desc = progDesc "See if we can successfully decode a MOB file"
+  failure = switch $ long "quiet-failure" <> short 'F'
+  success = switch $ long "report-success" <> short 's'
 
 acts :: ParserInfo Action
 acts = info (subs <**> helper) desc where
@@ -53,19 +58,21 @@ acts = info (subs <**> helper) desc where
 main :: IO ()
 main = customExecParser p acts >>= \case
   Mob2Json mout mobFile ->
-    decodeMobOrFail mobFile >>= \mob -> do
+    decodeMobOrFail False mobFile >>= \mob -> do
       Bu.writeFile out $ displayMob mob
       exitWith ExitSuccess
     where
     out = fromMaybe (mobFile <.> "json") mout
-  AnalyzeMob mobFile -> do
-    mob <- decodeMobOrFail mobFile
-    when (not $ checkUUID mobFile (vuuid mob)) do
-      IO.hPutStr stderr mobFile
-      hPutStrLn stderr ": UUID mismatch"
+  AnalyzeMob {..} -> do
+    mob <- decodeMobOrFail quietFailure mobIn
+    when (not (checkUUID mobIn $ vuuid mob)) do
+      when (not quietFailure) do
+        IO.hPutStr stderr mobIn
+        hPutStrLn stderr ": UUID mismatch"
       exitWith $ ExitFailure 2
-    IO.putStr mobFile
-    putStrLn " OK"
+    when reportSuccess do
+      IO.putStr mobIn
+      putStrLn " OK"
     exitWith ExitSuccess
   where
   p = prefs showHelpOnEmpty
@@ -82,13 +89,14 @@ checkUUID file vuuid = expectedUUIDString file == uuidStr
   tweak ('-':cs) = '_' : tweak cs
   tweak (c:cs) = toUpper c : tweak cs
 
-decodeMobOrFail :: FilePath -> IO Mob
-decodeMobOrFail file =
+decodeMobOrFail :: Bool -> FilePath -> IO Mob
+decodeMobOrFail quietFailure file =
   L.readFile file >>= \bs ->
     case decodeMob bs of
       Left err -> do
-        IO.hPutStr stderr file
-        IO.hPutStr stderr ": "
-        hPutStrLn stderr err
+        when (not quietFailure) do
+          IO.hPutStr stderr file
+          IO.hPutStr stderr ": "
+          hPutStrLn stderr err
         exitWith $ ExitFailure 1
       Right mob -> pure mob
