@@ -17,8 +17,8 @@ displayMob (Mob { .. })
   [ byteString "{ \"proto-id\": "
     , string8 $ show protoId
     , char8 '\n'
-  , byteString ", \"uuid\": \""
-    , byteString $ toASCIIBytes uuid
+  , byteString ", \"vuuid\": "
+    , displayVUUID vuuid
     , byteString "\"\n"
   , byteString ", \"object-type\": \""
     , string8 $ typeName objType
@@ -26,6 +26,16 @@ displayMob (Mob { .. })
   ]
   <> displayFields fields
   <> byteString "}\n"
+
+displayVUUID :: VUUID -> Builder
+displayVUUID (VUUID {..})
+  = mconcat
+  [ byteString "{ \"variant\": "
+  , string8 (show variant)
+  , byteString ", \"uuid\": "
+  , displayUUID uuid
+  , byteString " }"
+  ]
 
 displayFields :: Map ObjectField Value -> Builder
 displayFields = foldMap (uncurry displayField) . toList
@@ -47,7 +57,7 @@ displayValue = \case
   I32 i -> string8 $ show i
   F32 f -> string8 $ show f
   B32 b -> string8 $ show b
-  UID u -> displayUUID u
+  UID u -> displayVUUID u
   Loc x y ->
     mconcat
       [ byteString "{ \"locx\": "
@@ -58,7 +68,7 @@ displayValue = \case
       ]
   W32Arr ws -> displayArr (string8 . show) ws
   W64Arr ws -> displayArr (string8 . show) ws
-  ObjArr us -> displayArr displayUUID us
+  ObjArr us -> displayArr displayVUUID us
   ScriptArr ss -> displayArr displayScript ss
 
 displayUUID :: UUID -> Builder

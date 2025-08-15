@@ -50,17 +50,25 @@ type2blocks ty
 getMagic :: Get ()
 getMagic = getWord32le >>= guard . (== 0x77)
 
--- For some reason, the references I can find have 24 bytes for the guid. Only
--- the last 16 bytes are the actual guid, so the first 8 must be some sort of
--- padding. The bytes are also in a strange order relative to the file name
--- (which has the textual guid).
-getMobUUID :: Get UUID
-getMobUUID = do
-  skip 8
-  u0 <- assemble <$> getWord32le <*> getWord16le <*> getWord16le
-  u1 <- getWord64be
-  pure $ fromWords64 u0 u1
+-- UUIDs in a MOB file seem to be prefixed by 64 bits indicating their
+-- "variant". This is massive overkill, since there are only like 4 variants.
+--
+-- Many UUIDs are variant 2 from Microsoft, which have the bytes in an odd
+-- order. The first 8 bytes are broken into little endian values, and then the
+-- last 8 bytes are considered an array, which is equivalent to a big endian
+-- Word64. Hence the weird arithmetic below
+getVUUID :: Get VUUID
+getVUUID = do
+  variant <- getWord64le
+  uuid <- getUUID variant
+  pure $ VUUID { .. }
   where
+  getUUID 2 = do
+    u0 <- assemble <$> getWord32le <*> getWord16le <*> getWord16le
+    u1 <- getWord64be
+    pure $ fromWords64 u0 u1
+  getUUID _ = fromWords64 <$> getWord64be <*> getWord64be
+
   assemble i j k
     =   fromIntegral i `shiftL` 32
     .|. fromIntegral j `shiftL` 16
@@ -74,7 +82,7 @@ getMob = do
   pad1 <- getWord16le
   protoId <- getWord32le
   skip 12
-  uuid <- getMobUUID
+  vuuid <- getVUUID
   objType <- getObjectType
   numProps <- getWord16le
   bitmap <- getBitmap objType
@@ -102,10 +110,10 @@ getFieldValue = \case
   I32F       -> I32 <$> getInt32le
   B32F       -> B32 . (==0xffffffff) <$> getWord32le
   F32F       -> F32 <$> getFloatle
-  ObjF       -> do dummyByte "obj" ; UID <$> getMobUUID
+  ObjF       -> do dummyByte "obj" ; UID <$> getVUUID
   W32ArrF    -> W32Arr <$> getArray "word 32" 4 getWord32le
   W64ArrF    -> W64Arr <$> getArray "word 64" 8 getWord64le
-  ObjArrF    -> ObjArr <$> getArray "object" 24 getMobUUID
+  ObjArrF    -> ObjArr <$> getArray "object" 24 getVUUID
   ScriptArrF -> ScriptArr <$> getArray "script" 12 getScriptInfo
   ty         -> fail $ "unsupported field type: " ++ show ty
 
@@ -131,8 +139,7 @@ getFields fs = do Map.fromList <$> traverse getField fs
 
 -- Supported fields for a mob file
 getField :: ObjectField -> Get (ObjectField, Value)
-getField fl = do
-  (,) fl <$> getFieldValue (fieldType fl)
+getField fl = (,) fl <$> getFieldValue (fieldType fl)
 
 decodeMob :: L.ByteString -> Either String Mob
 decodeMob bs = case runGetOrFail getMob bs of

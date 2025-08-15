@@ -1,7 +1,8 @@
 
 module Mob
-  ( Value(..)
-  , Mob (..)
+  ( Mob (..)
+  , Value (..)
+  , VUUID (..)
   ) where
 
 import Data.Int
@@ -18,11 +19,17 @@ data Value
   | I32 !Int32
   | F32 !Float
   | B32 !Bool
-  | UID !UUID
+  | UID !VUUID
   | W32Arr [Word32]
   | W64Arr [Word64]
-  | ObjArr [UUID]
+  | ObjArr [VUUID]
   | ScriptArr [(Word32, Word32, Word32)]
+
+data VUUID
+  = VUUID
+  { variant :: !Word64
+  , uuid    :: !UUID
+  } deriving (Eq, Ord, Show)
 
 data Mob
   = Mob
@@ -30,8 +37,7 @@ data Mob
   , compat :: !Word32
   , pad1 :: !Word16
   , protoId :: !Word32
-  , uuid :: !UUID
+  , vuuid :: !VUUID
   , objType :: !ObjectType
   , fields :: Map ObjectField Value
   }
-

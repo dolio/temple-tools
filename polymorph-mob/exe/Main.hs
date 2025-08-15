@@ -5,7 +5,7 @@ import Data.ByteString.Lazy as L
 import Data.ByteString.Builder qualified as Bu
 import Data.Char (toUpper)
 import Data.Maybe (fromMaybe)
-import Data.UUID (UUID, toString)
+import Data.UUID (toString)
 import System.IO as IO
 import System.Exit
 import System.FilePath
@@ -60,21 +60,23 @@ main = customExecParser p acts >>= \case
     out = fromMaybe (mobFile <.> "json") mout
   AnalyzeMob mobFile -> do
     mob <- decodeMobOrFail mobFile
-    when (not $ checkUUID mobFile (uuid mob)) do
+    when (not $ checkUUID mobFile (vuuid mob)) do
       IO.hPutStr stderr mobFile
       hPutStrLn stderr ": UUID mismatch"
       exitWith $ ExitFailure 2
+    IO.putStr mobFile
+    putStrLn " OK"
     exitWith ExitSuccess
   where
   p = prefs showHelpOnEmpty
 
 
-checkUUID :: FilePath -> UUID -> Bool
-checkUUID file uuid = expectedUUIDString file == uuidStr
+checkUUID :: FilePath -> VUUID -> Bool
+checkUUID file vuuid = expectedUUIDString file == uuidStr
   where
   expectedUUIDString = dropExtensions . takeFileName
 
-  uuidStr = ("G_" ++) . tweak $ toString uuid
+  uuidStr = ("G_" ++) . tweak . toString $ uuid vuuid
 
   tweak [] = []
   tweak ('-':cs) = '_' : tweak cs
