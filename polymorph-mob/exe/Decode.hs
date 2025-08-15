@@ -61,13 +61,10 @@ getMagic = getWord32le >>= guard . (== 0x77)
 getVUUID :: Get VUUID
 getVUUID = do
   variant <- getWord64le
-  uuid <- getUUID
+  uuid <- fromWords64 <$> getScramble <*> getWord64be
   pure $ VUUID { .. }
   where
-  getUUID = do
-    u0 <- assemble <$> getWord32le <*> getWord16le <*> getWord16le
-    u1 <- getWord64be
-    pure $ fromWords64 u0 u1
+  getScramble = assemble <$> getWord32le <*> getWord16le <*> getWord16le
 
   assemble i j k
     =   fromIntegral i `shiftL` 32
@@ -104,18 +101,19 @@ dummyByte _name = skip 1
 
 getFieldValue :: FieldType -> Get Value
 getFieldValue = \case
-  W32F       -> W32 <$> getWord32le
-  LocF       -> do dummyByte "loc" ; Loc <$> getWord32le <*> getWord32le
-  W64F       -> do dummyByte "w64" ; W64 <$> getWord64le
-  I32F       -> I32 <$> getInt32le
-  B32F       -> B32 . (==0xffffffff) <$> getWord32le
-  F32F       -> F32 <$> getFloatle
-  ObjF       -> do dummyByte "obj" ; UID <$> getVUUID
-  W32ArrF    -> W32Arr <$> getArray "word 32" 4 getWord32le
-  W64ArrF    -> W64Arr <$> getArray "word 64" 8 getWord64le
-  ObjArrF    -> ObjArr <$> getArray "object" 24 getVUUID
-  ScriptArrF -> ScriptArr <$> getArray "script" 12 getScriptInfo
-  ty         -> fail $ "unsupported field type: " ++ show ty
+  W32F        -> W32 <$> getWord32le
+  LocF        -> do dummyByte "loc" ; Loc <$> getWord32le <*> getWord32le
+  W64F        -> do dummyByte "w64" ; W64 <$> getWord64le
+  I32F        -> I32 <$> getInt32le
+  B32F        -> B32 . (==0xffffffff) <$> getWord32le
+  F32F        -> F32 <$> getFloatle
+  ObjF        -> do dummyByte "obj" ; UID <$> getVUUID
+  W32ArrF     -> W32Arr <$> getArray "word 32" 4 getWord32le
+  W64ArrF     -> W64Arr <$> getArray "word 64" 8 getWord64le
+  ObjArrF     -> ObjArr <$> getArray "object" 24 getVUUID
+  ScriptArrF  -> ScriptArr <$> getArray "script" 12 getScriptInfo
+  AbilityArrF -> W32Arr <$> getArray "ability" 4 getWord32le
+  ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get [a]
 getArray name exSize elem = do
