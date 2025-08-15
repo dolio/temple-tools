@@ -53,21 +53,21 @@ getMagic = getWord32le >>= guard . (== 0x77)
 -- UUIDs in a MOB file seem to be prefixed by 64 bits indicating their
 -- "variant". This is massive overkill, since there are only like 4 variants.
 --
--- Many UUIDs are variant 2 from Microsoft, which have the bytes in an odd
--- order. The first 8 bytes are broken into little endian values, and then the
--- last 8 bytes are considered an array, which is equivalent to a big endian
--- Word64. Hence the weird arithmetic below
+-- Many UUIDs are specified as variant 2 from Microsoft, which have the bytes
+-- in an odd order, and it seems all UUIDs are actually stored that way. The
+-- first 8 bytes are broken into little endian values, and then the last 8
+-- bytes are considered an array, which is equivalent to a big endian Word64.
+-- Hence the weird arithmetic below.
 getVUUID :: Get VUUID
 getVUUID = do
   variant <- getWord64le
-  uuid <- getUUID variant
+  uuid <- getUUID
   pure $ VUUID { .. }
   where
-  getUUID 2 = do
+  getUUID = do
     u0 <- assemble <$> getWord32le <*> getWord16le <*> getWord16le
     u1 <- getWord64be
     pure $ fromWords64 u0 u1
-  getUUID _ = fromWords64 <$> getWord64be <*> getWord64be
 
   assemble i j k
     =   fromIntegral i `shiftL` 32
