@@ -3,7 +3,6 @@ module Display (displayMob) where
 
 import Data.ByteString.Builder
 import Data.Char (toLower)
-import Data.Int
 import Data.List (intersperse)
 import Data.Map.Strict (Map, toList)
 import Data.UUID
@@ -60,21 +59,45 @@ displayValue = \case
   F32 f -> string8 $ show f
   B32 b -> string8 . fmap toLower $ show b
   UID u -> displayVUUID u
-  Loc x y -> displayLoc x y
+  Loc l -> displayLoc l
   I32Arr is -> displayArr (string8 . show) is
   W32Arr ws -> displayArr (string8 . show) ws
   W64Arr ws -> displayArr (string8 . show) ws
-  LocArr ls -> displayArr (uncurry displayLoc) ls
   ObjArr us -> displayArr displayVUUID us
   ScriptArr ss -> displayArr displayScript ss
+  StandPtArr sps -> displayArr displayStandPoint sps
 
-displayLoc :: Int32 -> Int32 -> Builder
-displayLoc x y =
+displayLoc :: Loc -> Builder
+displayLoc (L {..}) =
   mconcat
     [ byteString "{ \"locx\": "
     , string8 $ show x
     , byteString ", \"locy\": "
     , string8 $ show y
+    , byteString " }"
+    ]
+
+displayOffsets :: Offsets -> Builder
+displayOffsets (Off {..}) =
+  mconcat
+    [ byteString "{ \"offx\": "
+    , string8 $ show offx
+    , byteString ", \"offy\": "
+    , string8 $ show offy
+    , byteString " }"
+    ]
+
+displayStandPoint :: StandPoint -> Builder
+displayStandPoint (StdPt {..}) =
+  mconcat
+    [ byteString "{ \"map-info\": "
+    , string8 $ show mapInfo
+    , byteString ", \"loc\": "
+    , displayLoc loc
+    , byteString ", \"offsets\": "
+    , displayOffsets offsets
+    , byteString ", \"jp\": "
+    , string8 $ show jp
     , byteString " }"
     ]
 

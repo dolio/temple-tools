@@ -163,7 +163,7 @@ data FieldType
   | W32ArrF     -- array of unsigned 32-bit integers
   | W64ArrF     -- array of unsigned 64-bit integers
   | ObjArrF     -- array of objects
-  | LocArrF     -- array of locations
+  | StandPtArrF -- array of standpoints
   | AbilityArrF -- array of ability scores
   | ScriptArrF  -- array of scripts (numbers, probably)
   | SpellArrF   -- array of spell entries
@@ -2570,7 +2570,7 @@ npcFieldType = \case
   NpcPadIntArr3 -> W32ArrF
   NpcPadIntArr4 -> W32ArrF
   NpcPadIntArr5 -> W32ArrF
-  NpcStandpoints -> LocArrF
+  NpcStandpoints -> StandPtArrF
   NpcPadInt64Arr2 -> W64ArrF
   NpcPadInt64Arr3 -> W64ArrF
   NpcPadInt64Arr4 -> W64ArrF

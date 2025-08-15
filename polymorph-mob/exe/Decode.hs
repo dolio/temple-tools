@@ -102,7 +102,7 @@ dummyByte _name = skip 1
 getFieldValue :: FieldType -> Get Value
 getFieldValue = \case
   W32F        -> W32 <$> getWord32le
-  LocF        -> do dummyByte "loc" ; Loc <$> getInt32le <*> getInt32le
+  LocF        -> do dummyByte "loc" ; Loc <$> getLoc
   W64F        -> do dummyByte "w64" ; W64 <$> getWord64le
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
@@ -113,8 +113,7 @@ getFieldValue = \case
   ObjArrF     -> ObjArr <$> getArray "object" 24 getVUUID
   ScriptArrF  -> ScriptArr <$> getArray "script" 12 getScriptInfo
   AbilityArrF -> I32Arr <$> getArray "ability" 4 getInt32le
-  LocArrF     ->
-    LocArr <$> getArray "loc" 8 ((,) <$> getInt32le <*> getInt32le)
+  StandPtArrF -> StandPtArr <$> getStandPointArray
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get [a]
@@ -126,11 +125,41 @@ getArray name exSize elem = do
   numFields <- getWord32le
   _sarc <- getWord32le
   elems <- replicateM (fromIntegral numFields) elem
+  -- TODO: might be information to check in these blocks
+  padBlocks <- getWord32le
+  elems <$ skip (4 * fromIntegral padBlocks)
+
+-- For some reason, there is a lot of structure to these but it is mostly
+-- encoded as if it were a Word64 array.
+getStandPointArray :: Get [StandPoint]
+getStandPointArray = do
+  dummyByte "standpoint"
+  fieldSize <- getWord32le
+  when (fieldSize /= 8) . fail $
+    "unexpected field size for standpoint array: " ++ show fieldSize
+  numFields <- getWord32le
+  when (numFields `mod` 10 /= 0) . fail $
+    "expected number of fields for standpoint array not multiple of 10: " ++
+      show numFields
+  _sarc <- getWord32le
+  elems <- replicateM (fromIntegral numFields `div` 10) getStandPoint
+  -- TODO: might be information to check in these blocks
   padBlocks <- getWord32le
   elems <$ skip (4 * fromIntegral padBlocks)
 
 getScriptInfo :: Get (Word32, Word32, Word32)
 getScriptInfo = (,,) <$> getWord32le <*> getWord32le <*> getWord32le
+
+getStandPoint :: Get StandPoint
+getStandPoint = do
+  sp <- StdPt <$> getWord64le <*> getLoc <*> getOffsets <*> getWord64le
+  sp <$ skip 48
+
+getLoc :: Get Loc
+getLoc = L <$> getInt32le <*> getInt32le
+
+getOffsets :: Get Offsets
+getOffsets = Off <$> getFloatle <*> getFloatle
 
 -- Given a sequence of fields in the order they will occur, reads their values
 -- into a map.
