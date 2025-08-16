@@ -7,6 +7,7 @@ module Mob
   , Value (..)
   , VUUID (..)
   , Waypoint (..)
+  , WaypointArr (..)
   ) where
 
 import Data.Int
@@ -38,6 +39,15 @@ data Waypoint
   , wayptExtra :: [Word32]
   } deriving (Eq, Ord, Show)
 
+data WaypointArr
+  = Waypts
+  { wayptCount  :: !Word32
+  , wayptExtra1 :: !Word32
+  , wayptExtra2 :: !Word32
+  , wayptExtra3 :: !Word32
+  , waypts      :: [Waypoint]
+  }
+
 data Value
   = W32 !Word32
   | Loc !Loc
@@ -52,7 +62,7 @@ data Value
   | ObjArr [VUUID]
   | ScriptArr [(Word32, Word32, Word32)]
   | StandptArr [Standpoint]
-  | WayptArr Word32 Word32 Word32 Word32 [Waypoint]
+  | WayptArr WaypointArr
 
 data VUUID
   = VUUID

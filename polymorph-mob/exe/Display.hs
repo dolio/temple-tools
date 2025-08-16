@@ -68,7 +68,7 @@ displayValue = \case
   ObjArr us -> displayArr displayVUUID us
   ScriptArr ss -> displayArr displayScript ss
   StandptArr sps -> displayArr displayStandpoint sps
-  WayptArr count ex1 ex2 ex3 wps ->
+  WayptArr (Waypts count ex1 ex2 ex3 wps) ->
     mconcat
       [ "{ \"count\": "
       , string8 $ show count

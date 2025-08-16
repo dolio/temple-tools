@@ -116,7 +116,7 @@ getFieldValue name = \case
   ScriptArrF  -> ScriptArr <$> getArray name 12 getScriptInfo
   AbilityArrF -> I32Arr <$> getArray name 4 getInt32le
   StandptArrF -> StandptArr <$> getStandpointArray
-  WayptArrF   -> getWaypointArray name
+  WayptArrF   -> WayptArr <$> getWaypointArray name
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get [a]
@@ -152,7 +152,7 @@ getStandpointArray = do
   elems <$ skip (4 * fromIntegral padBlocks)
 
 -- This one seems to have an even weirder structure
-getWaypointArray :: String -> Get Value
+getWaypointArray :: String -> Get WaypointArr
 getWaypointArray name = do
   dummyByte name
   fieldSize <- getWord32le
@@ -171,7 +171,7 @@ getWaypointArray name = do
   -- TODO: might be information to check in these blocks
   padBlocks <- getWord32le
   skip (4 * fromIntegral padBlocks)
-  pure $ WayptArr numWaypoints dummy1 dummy2 dummy3 elems
+  pure $ Waypts numWaypoints dummy1 dummy2 dummy3 elems
 
 getScriptInfo :: Get (Word32, Word32, Word32)
 getScriptInfo = (,,) <$> getWord32le <*> getWord32le <*> getWord32le
@@ -204,7 +204,7 @@ getFields fs = do Map.fromList <$> traverse getField fs
 
 -- Supported fields for a mob file
 getField :: ObjectField -> Get (ObjectField, Value)
-getField fl = (,) fl <$> getFieldValue (fieldType fl)
+getField fl = (,) fl <$> getFieldValue (fieldName fl) (fieldType fl)
 
 decodeMob :: L.ByteString -> Either String Mob
 decodeMob bs = case runGetOrFail getMob bs of
