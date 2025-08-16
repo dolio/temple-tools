@@ -6,9 +6,11 @@ import Data.ByteString.Builder qualified as Bu
 import Data.Char (toUpper)
 import Data.Maybe (fromMaybe)
 import Data.UUID (toString)
+import Data.Word
 import System.IO as IO
 import System.Exit
 import System.FilePath
+import Text.Read (readMaybe)
 
 import Options.Applicative
 
@@ -22,10 +24,16 @@ data Action
     , _mobIn   :: FilePath
     }
   | AnalyzeMob
-    { quietFailure  :: Bool
-    , reportSuccess :: Bool
-    , mobIn         :: FilePath
+    { aopts :: AnalyzeOpts
+    , mobIn :: FilePath
     }
+
+data AnalyzeOpts
+  = AO
+  { quietFailure  :: Bool
+  , reportSuccess :: Bool
+  , searchProto   :: Maybe Word32
+  }
 
 inputArg :: Parser FilePath
 inputArg = strArgument $ metavar "INPUT_FILE"
@@ -43,12 +51,20 @@ mob2json = command "mob-to-json" $ info cmd desc where
   cmd = Mob2Json <$> outputOpt <*> inputArg
   desc = progDesc "Turn a MOB file into (somewhat) readable JSON"
 
-analyzeMob :: Mod CommandFields Action
-analyzeMob = command "analyze-mob" $ info cmd desc where
-  cmd = AnalyzeMob <$> failure <*> success <*> inputArg
-  desc = progDesc "See if we can successfully decode a MOB file"
+analyzeOpts :: Parser AnalyzeOpts
+analyzeOpts = AO <$> failure <*> success <*> proto where
   failure = switch $ long "quiet-failure" <> short 'F'
   success = switch $ long "report-success" <> short 's'
+  proto = option (maybeReader $ fmap Just . readMaybe)
+        $ long "proto"
+       <> metavar "PROTO_ID"
+       <> help "Print if prototype id matches"
+       <> value Nothing
+
+analyzeMob :: Mod CommandFields Action
+analyzeMob = command "analyze-mob" $ info cmd desc where
+  cmd = AnalyzeMob <$> analyzeOpts <*> inputArg
+  desc = progDesc "Try to decode a MOB file and check information about it"
 
 acts :: ParserInfo Action
 acts = info (subs <**> helper) desc where
@@ -64,19 +80,30 @@ main = customExecParser p acts >>= \case
     where
     out = fromMaybe (mobFile <.> "json") mout
   AnalyzeMob {..} -> do
-    mob <- decodeMobOrFail quietFailure mobIn
-    when (not (checkUUID mobIn $ vuuid mob)) do
-      when (not quietFailure) do
-        IO.hPutStr stderr mobIn
-        hPutStrLn stderr ": UUID mismatch"
-      exitWith $ ExitFailure 2
-    when reportSuccess do
-      IO.putStr mobIn
-      putStrLn " OK"
+    decodeMobOrFail (quietFailure aopts) mobIn >>=
+      performAnalysis mobIn aopts
     exitWith ExitSuccess
   where
   p = prefs showHelpOnEmpty
 
+performAnalysis :: FilePath -> AnalyzeOpts -> Mob -> IO ()
+performAnalysis fname (AO {..}) mob = do
+  when (not . checkUUID fname $ vuuid mob) do
+    when (not quietFailure) do
+      IO.hPutStr stderr fname
+      hPutStrLn stderr ": UUID mismatch"
+    exitWith $ ExitFailure 2
+
+  when reportSuccess do
+    IO.putStr fname
+    putStrLn " OK"
+
+  case searchProto of
+    Nothing -> pure ()
+    Just sp -> when (sp == protoId mob) do
+      IO.putStr fname
+      IO.putStr " protoId = "
+      print $ protoId mob
 
 checkUUID :: FilePath -> VUUID -> Bool
 checkUUID file vuuid = expectedUUIDString file == uuidStr
