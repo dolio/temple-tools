@@ -6,7 +6,6 @@ import Data.Char (toLower)
 import Data.List (intersperse)
 import Data.Map.Strict (Map, toList)
 import Data.UUID
-import Data.Word
 
 import Numeric (showHex)
 
@@ -62,26 +61,38 @@ displayValue = \case
   B32 b -> string8 . fmap toLower $ show b
   UID u -> displayVUUID u
   Loc l -> displayLoc l
-  I32Arr is -> displayArr (string8 . show) is
-  W32Arr ws -> displayArr (string8 . show) ws
-  W64Arr ws -> displayArr (string8 . show) ws
-  ObjArr us -> displayArr displayVUUID us
-  ScriptArr ss -> displayArr displayScript ss
-  StandptArr sps -> displayArr displayStandpoint sps
-  WayptArr (Waypts count ex1 ex2 ex3 wps) ->
+  I32Arr is -> displayArray (string8 . show) is
+  W32Arr ws -> displayArray (string8 . show) ws
+  W64Arr ws -> displayArray (string8 . show) ws
+  ObjArr us -> displayArray displayVUUID us
+  ScriptArr ss -> displayArray displayScript ss
+  StandptArr sps -> displayArray displayStandpoint sps
+  WayptArr (Waypts {..}) ->
     mconcat
       [ "{ \"count\": "
-      , string8 $ show count
+      , string8 $ show wayptCount
       , ", \"extra1\": "
-      , string8 $ show ex1
+      , string8 $ show wayptExtra1
       , ", \"extra2\": "
-      , string8 $ show ex2
+      , string8 $ show wayptExtra2
       , ", \"extra3\": "
-      , string8 $ show ex3
+      , string8 $ show wayptExtra3
       , ", \"waypoints\": "
-      , displayArr displayWaypoint wps
+      , displays displayWaypoint waypts
+      , ", \"postamble\": "
+      , displayPostamble wayptPost
+      , " }"
       ]
 
+displayArray :: (e -> Builder) -> Array e -> Builder
+displayArray de (Arr {..}) =
+  mconcat
+    [ byteString "{ \"elems\": "
+    , displays de content
+    , byteString ", \"postamble\": "
+    , displayPostamble postamble
+    , byteString " }"
+    ]
 displayLoc :: Loc -> Builder
 displayLoc (L {..}) =
   mconcat
@@ -132,7 +143,7 @@ displayWaypoint (Waypt {..}) =
     , byteString ", \"delay\": "
     , string8 $ show wayptDelay
     , byteString ", \"extra\": "
-    , displayArr (string8 . show) wayptExtra
+    , displays (string8 . show) wayptExtra
     , byteString " }"
     ]
 
@@ -140,22 +151,25 @@ displayUUID :: UUID -> Builder
 displayUUID u =
   byteString "\"" <> byteString (toASCIIBytes u) <> byteString "\""
 
-displayArr :: (a -> Builder) -> [a] -> Builder
-displayArr de es =
+displays :: (a -> Builder) -> [a] -> Builder
+displays de es =
   mconcat
     [ byteString "["
     , mconcat . intersperse (char8 ',') $ fmap de es
     , byteString "]"
     ]
 
-displayScript :: (Word32, Word32, Word32) -> Builder
-displayScript (unk, count, id) =
+displayScript :: Script -> Builder
+displayScript (Script {..}) =
   mconcat
     [ byteString "{ \"unknown\": "
-    , string8 $ show unk
+    , string8 $ show scrUnknown
     , byteString ", \"counters\": "
-    , string8 $ show count
+    , string8 $ show scrCounters
     , byteString ", \"script-id\": "
-    , string8 $ show id
+    , string8 $ show scrId
     , byteString " }"
     ]
+
+displayPostamble :: ArrayPostamble -> Builder
+displayPostamble (Post ws) = displays (string8 . show) ws

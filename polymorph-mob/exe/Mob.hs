@@ -1,9 +1,12 @@
 
 module Mob
-  ( Loc (..)
+  ( Array (..)
+  , ArrayPostamble (..)
+  , Loc (..)
   , Mob (..)
   , Offsets (..)
   , Standpoint (..)
+  , Script (..)
   , Value (..)
   , VUUID (..)
   , Waypoint (..)
@@ -39,6 +42,8 @@ data Waypoint
   , wayptExtra :: [Word32]
   } deriving (Eq, Ord, Show)
 
+data ArrayPostamble = Post [Word32]
+
 data WaypointArr
   = Waypts
   { wayptCount  :: !Word32
@@ -46,6 +51,20 @@ data WaypointArr
   , wayptExtra2 :: !Word32
   , wayptExtra3 :: !Word32
   , waypts      :: [Waypoint]
+  , wayptPost   :: ArrayPostamble
+  }
+
+data Array e
+  = Arr
+  { content :: [e]
+  , postamble :: ArrayPostamble
+  }
+
+data Script
+  = Script
+  { scrUnknown  :: !Word32
+  , scrCounters :: !Word32
+  , scrId       :: !Word32
   }
 
 data Value
@@ -56,12 +75,12 @@ data Value
   | F32 !Float
   | B32 !Bool
   | UID !VUUID
-  | I32Arr [Int32]
-  | W32Arr [Word32]
-  | W64Arr [Word64]
-  | ObjArr [VUUID]
-  | ScriptArr [(Word32, Word32, Word32)]
-  | StandptArr [Standpoint]
+  | I32Arr (Array Int32)
+  | W32Arr (Array Word32)
+  | W64Arr (Array Word64)
+  | ObjArr (Array VUUID)
+  | ScriptArr (Array Script)
+  | StandptArr (Array Standpoint)
   | WayptArr WaypointArr
 
 data VUUID

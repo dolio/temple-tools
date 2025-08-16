@@ -119,7 +119,7 @@ getFieldValue name = \case
   WayptArrF   -> WayptArr <$> getWaypointArray name
   ty          -> fail $ "unsupported field type: " ++ show ty
 
-getArray :: String -> Word32 -> Get a -> Get [a]
+getArray :: String -> Word32 -> Get a -> Get (Array a)
 getArray name exSize elem = do
   dummyByte name
   fieldSize <- getWord32le
@@ -127,14 +127,13 @@ getArray name exSize elem = do
     "unexpected field size for " ++ name ++ " array: " ++ show fieldSize
   numFields <- getWord32le
   _sarc <- getWord32le
-  elems <- replicateM (fromIntegral numFields) elem
-  -- TODO: might be information to check in these blocks
-  padBlocks <- getWord32le
-  elems <$ skip (4 * fromIntegral padBlocks)
+  Arr
+    <$> replicateM (fromIntegral numFields) elem
+    <*> getArrayPostamble
 
 -- For some reason, there is a lot of structure to these but it is mostly
 -- encoded as if it were a Word64 array.
-getStandpointArray :: Get [Standpoint]
+getStandpointArray :: Get (Array Standpoint)
 getStandpointArray = do
   dummyByte "standpoint"
   fieldSize <- getWord32le
@@ -146,10 +145,9 @@ getStandpointArray = do
     "expected number of words for standpoint array not multiple of 10: " ++
       show words
   _sarc <- getWord32le
-  elems <- replicateM (fromIntegral numFields) getStandpoint
-  -- TODO: might be information to check in these blocks
-  padBlocks <- getWord32le
-  elems <$ skip (4 * fromIntegral padBlocks)
+  Arr
+    <$> replicateM (fromIntegral numFields) getStandpoint
+    <*> getArrayPostamble
 
 -- This one seems to have an even weirder structure
 getWaypointArray :: String -> Get WaypointArr
@@ -168,13 +166,16 @@ getWaypointArray name = do
   dummy2 <- getWord32le
   dummy3 <- getWord32le
   elems <- replicateM (fromIntegral entries) getWaypoint
-  -- TODO: might be information to check in these blocks
-  padBlocks <- getWord32le
-  skip (4 * fromIntegral padBlocks)
-  pure $ Waypts numWaypoints dummy1 dummy2 dummy3 elems
+  post <- getArrayPostamble
+  pure $ Waypts numWaypoints dummy1 dummy2 dummy3 elems post
 
-getScriptInfo :: Get (Word32, Word32, Word32)
-getScriptInfo = (,,) <$> getWord32le <*> getWord32le <*> getWord32le
+getArrayPostamble :: Get ArrayPostamble
+getArrayPostamble = do
+  postBlocks <- getWord32le
+  Post <$> replicateM (fromIntegral postBlocks) getWord32le
+
+getScriptInfo :: Get Script
+getScriptInfo = Script <$> getWord32le <*> getWord32le <*> getWord32le
 
 getStandpoint :: Get Standpoint
 getStandpoint = do
