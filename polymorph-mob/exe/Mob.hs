@@ -43,6 +43,7 @@ data Waypoint
   } deriving (Eq, Ord, Show)
 
 data ArrayPostamble = Post [Word32]
+  deriving (Eq, Ord, Show)
 
 data WaypointArr
   = Waypts
@@ -52,20 +53,20 @@ data WaypointArr
   , wayptExtra3 :: !Word32
   , waypts      :: [Waypoint]
   , wayptPost   :: ArrayPostamble
-  }
+  } deriving (Eq, Ord, Show)
 
 data Array e
   = Arr
   { content :: [e]
   , postamble :: ArrayPostamble
-  }
+  } deriving (Eq, Ord, Show)
 
 data Script
   = Script
   { scrUnknown  :: !Word32
   , scrCounters :: !Word32
   , scrId       :: !Word32
-  }
+  } deriving (Eq, Ord, Show)
 
 data Value
   = W32 !Word32
@@ -82,6 +83,8 @@ data Value
   | ScriptArr (Array Script)
   | StandptArr (Array Standpoint)
   | WayptArr WaypointArr
+  | Null
+  deriving (Eq, Ord, Show)
 
 data VUUID
   = VUUID

@@ -96,32 +96,36 @@ getObjectType = getWord32le >>= \case
 getBitmap :: ObjectType -> Get Bitmap
 getBitmap ty = BM <$> getByteString (type2blocks ty * 4)
 
-dummyByte :: String -> Get ()
-dummyByte name = do
-  b <- getWord8
-  when (b == 0) . fail $ "bad dummy byte for " ++ name ++ " field"
+-- Every field type larger than 32 bits has a short circuit byte. If this is
+-- 0, they skip encoding 'null' values in the full format. Presumably this is
+-- because it takes a fair amount (by early 2000s standards) more space to
+-- encode an empty array than just a single byte (and empty arrays might be
+-- relatively common).
+shortCircuit :: Get Value -> Get Value
+shortCircuit full = getWord8 >>= \case
+  0 -> pure Null
+  _ -> full
 
 getFieldValue :: String -> FieldType -> Get Value
 getFieldValue name = \case
   W32F        -> W32 <$> getWord32le
-  LocF        -> do dummyByte name ; Loc <$> getLoc
-  W64F        -> do dummyByte name ; W64 <$> getWord64le
+  LocF        -> shortCircuit $ Loc <$> getLoc
+  W64F        -> shortCircuit $ W64 <$> getWord64le
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
   F32F        -> F32 <$> getFloatle
-  ObjF        -> do dummyByte name ; UID <$> getVUUID
-  W32ArrF     -> W32Arr <$> getArray name 4 getWord32le
-  W64ArrF     -> W64Arr <$> getArray name 8 getWord64le
-  ObjArrF     -> ObjArr <$> getArray name 24 getVUUID
-  ScriptArrF  -> ScriptArr <$> getArray name 12 getScriptInfo
-  AbilityArrF -> I32Arr <$> getArray name 4 getInt32le
-  StandptArrF -> StandptArr <$> getStandpointArray
-  WayptArrF   -> WayptArr <$> getWaypointArray name
+  ObjF        -> shortCircuit $ UID <$> getVUUID
+  W32ArrF     -> shortCircuit $ W32Arr <$> getArray name 4 getWord32le
+  W64ArrF     -> shortCircuit $ W64Arr <$> getArray name 8 getWord64le
+  ObjArrF     -> shortCircuit $ ObjArr <$> getArray name 24 getVUUID
+  ScriptArrF  -> shortCircuit $ ScriptArr <$> getArray name 12 getScriptInfo
+  AbilityArrF -> shortCircuit $ I32Arr <$> getArray name 4 getInt32le
+  StandptArrF -> shortCircuit $ StandptArr <$> getStandpointArray
+  WayptArrF   -> shortCircuit $ WayptArr <$> getWaypointArray
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get (Array a)
 getArray name exSize elem = do
-  dummyByte name
   fieldSize <- getWord32le
   when (fieldSize /= exSize) . fail $
     "unexpected field size for " ++ name ++ " array: " ++ show fieldSize
@@ -135,7 +139,6 @@ getArray name exSize elem = do
 -- encoded as if it were a Word64 array.
 getStandpointArray :: Get (Array Standpoint)
 getStandpointArray = do
-  dummyByte "standpoint"
   fieldSize <- getWord32le
   when (fieldSize /= 8) . fail $
     "unexpected field size for standpoint array: " ++ show fieldSize
@@ -150,9 +153,8 @@ getStandpointArray = do
     <*> getArrayPostamble
 
 -- This one seems to have an even weirder structure
-getWaypointArray :: String -> Get WaypointArr
-getWaypointArray name = do
-  dummyByte name
+getWaypointArray :: Get WaypointArr
+getWaypointArray = do
   fieldSize <- getWord32le
   when (fieldSize /= 8) . fail $
     "unexpected field size for waypoint array: " ++ show fieldSize

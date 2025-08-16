@@ -54,6 +54,7 @@ displayField fld val
 
 displayValue :: Value -> Builder
 displayValue = \case
+  Null -> byteString "null"
   W32 w -> string8 $ show w
   W64 w -> string8 $ show w
   I32 i -> string8 $ show i
