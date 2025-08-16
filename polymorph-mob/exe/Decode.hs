@@ -122,6 +122,7 @@ getFieldValue name = \case
   AbilityArrF -> shortCircuit $ I32Arr <$> getArray name 4 getInt32le
   StandptArrF -> shortCircuit $ StandptArr <$> getStandpointArray
   WayptArrF   -> shortCircuit $ WayptArr <$> getWaypointArray
+  StringF     -> shortCircuit $ String <$> getString
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get (Array a)
@@ -134,6 +135,11 @@ getArray name exSize elem = do
   Arr
     <$> replicateM (fromIntegral numFields) elem
     <*> getArrayPostamble
+
+getString :: Get BS.ByteString
+getString = do
+  size <- getWord32le
+  getByteString (fromIntegral size + 1)
 
 -- For some reason, there is a lot of structure to these but it is mostly
 -- encoded as if it were a Word64 array.

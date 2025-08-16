@@ -13,6 +13,7 @@ module Mob
   , WaypointArr (..)
   ) where
 
+import Data.ByteString (ByteString)
 import Data.Int
 import Data.Map.Strict (Map)
 import Data.UUID
@@ -83,6 +84,7 @@ data Value
   | ScriptArr (Array Script)
   | StandptArr (Array Standpoint)
   | WayptArr WaypointArr
+  | String !ByteString
   | Null
   deriving (Eq, Ord, Show)
 

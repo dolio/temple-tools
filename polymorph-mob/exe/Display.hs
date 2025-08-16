@@ -68,6 +68,7 @@ displayValue = \case
   ObjArr us -> displayArray displayVUUID us
   ScriptArr ss -> displayArray displayScript ss
   StandptArr sps -> displayArray displayStandpoint sps
+  String s -> char8 '"' <> byteString s <> char8 '"'
   WayptArr (Waypts {..}) ->
     mconcat
       [ "{ \"count\": "
