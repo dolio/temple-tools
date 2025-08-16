@@ -27,11 +27,14 @@ getMagic = getWord32le >>= guard . (== 0x77)
 -- first 8 bytes are broken into little endian values, and then the last 8
 -- bytes are considered an array, which is equivalent to a big endian Word64.
 -- Hence the weird arithmetic below.
-getVUUID :: Get VUUID
-getVUUID = do
+--
+-- In actual ToEE files, it seems like all UUIDs are variant 2, but some have
+-- the first 6 bytes filled with hex `cd`. I have no idea what this indicates.
+getObjectId :: Get ObjectId
+getObjectId = do
   variant <- getWord64le
   uuid <- fromWords64 <$> getScramble <*> getWord64be
-  pure $ VUUID { .. }
+  pure $ ObjId { .. }
   where
   getScramble = assemble <$> getWord32le <*> getWord16le <*> getWord16le
 
@@ -40,15 +43,22 @@ getVUUID = do
     .|. fromIntegral j `shiftL` 16
     .|. fromIntegral k
 
+getObjectInfo :: Get ObjectInfo
+getObjectInfo = do
+  subtype <- getWord16le
+  compat <- getWord32le
+  oiUnknown2 <- getWord16le
+  protoId <- getWord32le
+  oiUnknown3 <- getWord32le
+  oiUnknown4 <- getWord32le
+  oiUnknown5 <- getWord32le
+  pure $ ObjInfo {..}
+
 getMob :: Get Mob
 getMob = do
   getMagic
-  pad0 <- getWord16le
-  compat <- getWord32le
-  pad1 <- getWord16le
-  protoId <- getWord32le
-  skip 12
-  vuuid <- getVUUID
+  objInfo <- isolate 24 $ getObjectInfo
+  objId <- isolate 24 $ getObjectId
   objType <- getObjectType
   numProps <- getWord16le
   bitmap <- getBitmap objType
@@ -82,10 +92,10 @@ getFieldValue name = \case
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
   F32F        -> F32 <$> getFloatle
-  ObjF        -> shortCircuit $ UID <$> getVUUID
+  ObjF        -> shortCircuit $ UID <$> getObjectId
   W32ArrF     -> shortCircuit $ W32Arr <$> getArray name 4 getWord32le
   W64ArrF     -> shortCircuit $ W64Arr <$> getArray name 8 getWord64le
-  ObjArrF     -> shortCircuit $ ObjArr <$> getArray name 24 getVUUID
+  ObjArrF     -> shortCircuit $ ObjArr <$> getArray name 24 getObjectId
   ScriptArrF  -> shortCircuit $ ScriptArr <$> getArray name 12 getScriptInfo
   AbilityArrF -> shortCircuit $ I32Arr <$> getArray name 4 getInt32le
   StandptArrF -> shortCircuit $ StandptArr <$> getStandpointArray

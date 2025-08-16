@@ -14,14 +14,14 @@ import Temple.Objects.Spec
 import Mob
 
 displayMob :: Mob -> Builder
-displayMob (Mob { .. })
+displayMob (Mob {..})
   = mconcat
-  [ byteString "{ \"proto-id\": "
-    , string8 $ show protoId
+  [ byteString "{ \"object-info\":\n"
+    , displayObjectInfo objInfo
     , char8 '\n'
-  , byteString ", \"vuuid\": "
-    , displayVUUID vuuid
-    , byteString "\"\n"
+  , byteString ", \"object-id\": "
+    , displayObjectId True objId
+    , byteString "\n"
   , byteString ", \"object-type\": \""
     , string8 $ typeName objType
     , byteString "\"\n"
@@ -29,15 +29,40 @@ displayMob (Mob { .. })
   <> displayFields fields
   <> byteString "}\n"
 
-displayVUUID :: VUUID -> Builder
-displayVUUID (VUUID {..})
+displayObjectInfo :: ObjectInfo -> Builder
+displayObjectInfo (ObjInfo {..})
   = mconcat
-  [ byteString "{ \"variant\": "
+  [ byteString "    { \"subtype\": "
+  , string8 $ show subtype
+  , byteString "\n    , \"compat\": 0x"
+  , string8 $ showHex compat ""
+  , byteString "\n    , \"unknown2\": 0x"
+  , string8 $ showHex oiUnknown2 ""
+  , byteString "\n    , \"protoId\": "
+  , string8 $ show protoId
+  , byteString "\n    , \"unknown3\": 0x"
+  , string8 $ showHex oiUnknown3 ""
+  , byteString "\n    , \"unknown4\": 0x"
+  , string8 $ showHex oiUnknown4 ""
+  , byteString "\n    , \"unknown5\": 0x"
+  , string8 $ showHex oiUnknown5 ""
+  , byteString "\n    }"
+  ]
+
+displayObjectId :: Bool -> ObjectId -> Builder
+displayObjectId newline (ObjId {..})
+  = mconcat
+  [ break
+  , byteString "{ \"variant\": "
   , string8 (show variant)
+  , break
   , byteString ", \"uuid\": "
   , displayUUID uuid
-  , byteString " }"
+  , break
+  , char8 '}'
   ]
+  where
+  break | newline = byteString "\n    " | otherwise = char8 ' '
 
 displayFields :: Map ObjectField Value -> Builder
 displayFields = foldMap (uncurry displayField) . toList
@@ -60,12 +85,12 @@ displayValue = \case
   I32 i -> string8 $ show i
   F32 f -> string8 $ show f
   B32 b -> string8 . fmap toLower $ show b
-  UID u -> displayVUUID u
+  UID u -> displayObjectId False u
   Loc l -> displayLoc l
   I32Arr is -> displayArray (string8 . show) is
   W32Arr ws -> displayArray (string8 . show) ws
   W64Arr ws -> displayArray (string8 . show) ws
-  ObjArr us -> displayArray displayVUUID us
+  ObjArr us -> displayArray (displayObjectId False) us
   ScriptArr ss -> displayArray displayScript ss
   StandptArr sps -> displayArray displayStandpoint sps
   String s -> char8 '"' <> byteString s <> char8 '"'

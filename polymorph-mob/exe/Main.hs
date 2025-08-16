@@ -88,7 +88,7 @@ main = customExecParser p acts >>= \case
 
 performAnalysis :: FilePath -> AnalyzeOpts -> Mob -> IO ()
 performAnalysis fname (AO {..}) mob = do
-  when (not . checkUUID fname $ vuuid mob) do
+  when (not . checkUUID fname $ objId mob) do
     when (not quietFailure) do
       IO.hPutStr stderr fname
       hPutStrLn stderr ": UUID mismatch"
@@ -100,12 +100,12 @@ performAnalysis fname (AO {..}) mob = do
 
   case searchProto of
     Nothing -> pure ()
-    Just sp -> when (sp == protoId mob) do
+    Just sp -> when (sp == protoId (objInfo mob)) do
       IO.putStr fname
       IO.putStr " protoId = "
-      print $ protoId mob
+      print . protoId $ objInfo mob
 
-checkUUID :: FilePath -> VUUID -> Bool
+checkUUID :: FilePath -> ObjectId -> Bool
 checkUUID file vuuid = expectedUUIDString file == uuidStr
   where
   expectedUUIDString = dropExtensions . takeFileName

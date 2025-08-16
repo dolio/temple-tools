@@ -4,11 +4,12 @@ module Mob
   , ArrayPostamble (..)
   , Loc (..)
   , Mob (..)
+  , ObjectId (..)
+  , ObjectInfo (..)
   , Offsets (..)
   , Standpoint (..)
   , Script (..)
   , Value (..)
-  , VUUID (..)
   , Waypoint (..)
   , WaypointArr (..)
   ) where
@@ -76,11 +77,11 @@ data Value
   | I32 !Int32
   | F32 !Float
   | B32 !Bool
-  | UID !VUUID
+  | UID !ObjectId
   | I32Arr (Array Int32)
   | W32Arr (Array Word32)
   | W64Arr (Array Word64)
-  | ObjArr (Array VUUID)
+  | ObjArr (Array ObjectId)
   | ScriptArr (Array Script)
   | StandptArr (Array Standpoint)
   | WayptArr WaypointArr
@@ -88,19 +89,44 @@ data Value
   | Null
   deriving (Eq, Ord, Show)
 
-data VUUID
-  = VUUID
+-- This is an identifier for a ToEE object. The actual identifier is the UUID,
+-- which always seems to be in MS GUID format, which is variant 2. There is
+-- also 8 bits of 'variant' information or something. For most mobs this is
+-- just 2, and the lowest 2 bytes always seem to be 2 in practice, but
+-- sometimes the higher 6 bytes are filled with 0xcd for unknown reasons.
+data ObjectId
+  = ObjId
   { variant :: !Word64
   , uuid    :: !UUID
   } deriving (Eq, Ord, Show)
 
+-- This stores object information about a mob. The one field known for sure is
+-- `protoId`.
+--
+-- I have also guessed where the 'subtype' information is stored, but I'm not
+-- 100% sure it's the correct position. Unfortunately I don't have access to
+-- the corresopnding ToEE struct. The guess is based on WorldBuilder always
+-- writing a 1 here, and all .mob files also having a 1, which is a
+-- 'prototype' object.
+--
+-- The 'compat' was used for that by world builder, but I'm not sure what else
+-- might be there. Some of these fields might even be pointer addresses or the
+-- like.
+data ObjectInfo
+  = ObjInfo
+  { subtype    :: !Word16
+  , compat     :: !Word32
+  , oiUnknown2 :: !Word16
+  , protoId    :: !Word32
+  , oiUnknown3 :: !Word32
+  , oiUnknown4 :: !Word32
+  , oiUnknown5 :: !Word32
+  } deriving (Eq, Ord, Show)
+
 data Mob
   = Mob
-  { pad0 :: !Word16
-  , compat :: !Word32
-  , pad1 :: !Word16
-  , protoId :: !Word32
-  , vuuid :: !VUUID
+  { objInfo :: !ObjectInfo
+  , objId   :: !ObjectId
   , objType :: !ObjectType
-  , fields :: Map ObjectField Value
-  }
+  , fields  :: Map ObjectField Value
+  } deriving (Eq, Ord, Show)
