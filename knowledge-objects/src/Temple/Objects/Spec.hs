@@ -163,7 +163,8 @@ data FieldType
   | W32ArrF     -- array of unsigned 32-bit integers
   | W64ArrF     -- array of unsigned 64-bit integers
   | ObjArrF     -- array of objects
-  | StandPtArrF -- array of standpoints
+  | StandptArrF -- array of standpoints
+  | WayptArrF   -- array of waypoints
   | AbilityArrF -- array of ability scores
   | ScriptArrF  -- array of scripts (numbers, probably)
   | SpellArrF   -- array of spell entries
@@ -2537,7 +2538,7 @@ npcFieldType = \case
   NpcAiData -> W32F
   NpcCombatFocus -> ObjF
   NpcWhoHitMeLast -> ObjF
-  NpcWaypointsIdx -> W64ArrF
+  NpcWaypointsIdx -> WayptArrF
   NpcWaypointCurrent -> W32F
   NpcStandpointDayINVALID -> LocF
   NpcStandpointNightINVALID -> LocF
@@ -2570,7 +2571,7 @@ npcFieldType = \case
   NpcPadIntArr3 -> W32ArrF
   NpcPadIntArr4 -> W32ArrF
   NpcPadIntArr5 -> W32ArrF
-  NpcStandpoints -> StandPtArrF
+  NpcStandpoints -> StandptArrF
   NpcPadInt64Arr2 -> W64ArrF
   NpcPadInt64Arr3 -> W64ArrF
   NpcPadInt64Arr4 -> W64ArrF

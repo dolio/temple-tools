@@ -8,6 +8,8 @@ import Data.Map.Strict (Map, toList)
 import Data.UUID
 import Data.Word
 
+import Numeric (showHex)
+
 import Temple.Objects.Spec
 
 import Mob
@@ -65,7 +67,20 @@ displayValue = \case
   W64Arr ws -> displayArr (string8 . show) ws
   ObjArr us -> displayArr displayVUUID us
   ScriptArr ss -> displayArr displayScript ss
-  StandPtArr sps -> displayArr displayStandPoint sps
+  StandptArr sps -> displayArr displayStandpoint sps
+  WayptArr count ex1 ex2 ex3 wps ->
+    mconcat
+      [ "{ \"count\": "
+      , string8 $ show count
+      , ", \"extra1\": "
+      , string8 $ show ex1
+      , ", \"extra2\": "
+      , string8 $ show ex2
+      , ", \"extra3\": "
+      , string8 $ show ex3
+      , ", \"waypoints\": "
+      , displayArr displayWaypoint wps
+      ]
 
 displayLoc :: Loc -> Builder
 displayLoc (L {..}) =
@@ -87,8 +102,8 @@ displayOffsets (Off {..}) =
     , byteString " }"
     ]
 
-displayStandPoint :: StandPoint -> Builder
-displayStandPoint (StdPt {..}) =
+displayStandpoint :: Standpoint -> Builder
+displayStandpoint (Stdpt {..}) =
   mconcat
     [ byteString "{ \"map-info\": "
     , string8 $ show mapInfo
@@ -98,6 +113,26 @@ displayStandPoint (StdPt {..}) =
     , displayOffsets offsets
     , byteString ", \"jp\": "
     , string8 $ show jp
+    , byteString " }"
+    ]
+
+displayWaypoint :: Waypoint -> Builder
+displayWaypoint (Waypt {..}) =
+  mconcat
+    [ byteString "{ \"flags\": "
+    , string8 $ show wayptFlags
+    , byteString ", \"loc\": "
+    , displayLoc wayptLoc
+    , byteString ", \"offsets\": "
+    , displayOffsets wayptOffs
+    , byteString ", \"rotation\": "
+    , string8 $ show wayptRot
+    , byteString ", \"anims\": 0x"
+    , string8 $ showHex wayptAnims ""
+    , byteString ", \"delay\": "
+    , string8 $ show wayptDelay
+    , byteString ", \"extra\": "
+    , displayArr (string8 . show) wayptExtra
     , byteString " }"
     ]
 

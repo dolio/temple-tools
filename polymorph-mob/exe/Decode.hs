@@ -97,23 +97,26 @@ getBitmap :: ObjectType -> Get Bitmap
 getBitmap ty = BM <$> getByteString (type2blocks ty * 4)
 
 dummyByte :: String -> Get ()
-dummyByte _name = skip 1
+dummyByte name = do
+  b <- getWord8
+  when (b == 0) . fail $ "bad dummy byte for " ++ name ++ " field"
 
-getFieldValue :: FieldType -> Get Value
-getFieldValue = \case
+getFieldValue :: String -> FieldType -> Get Value
+getFieldValue name = \case
   W32F        -> W32 <$> getWord32le
-  LocF        -> do dummyByte "loc" ; Loc <$> getLoc
-  W64F        -> do dummyByte "w64" ; W64 <$> getWord64le
+  LocF        -> do dummyByte name ; Loc <$> getLoc
+  W64F        -> do dummyByte name ; W64 <$> getWord64le
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
   F32F        -> F32 <$> getFloatle
-  ObjF        -> do dummyByte "obj" ; UID <$> getVUUID
-  W32ArrF     -> W32Arr <$> getArray "word 32" 4 getWord32le
-  W64ArrF     -> W64Arr <$> getArray "word 64" 8 getWord64le
-  ObjArrF     -> ObjArr <$> getArray "object" 24 getVUUID
-  ScriptArrF  -> ScriptArr <$> getArray "script" 12 getScriptInfo
-  AbilityArrF -> I32Arr <$> getArray "ability" 4 getInt32le
-  StandPtArrF -> StandPtArr <$> getStandPointArray
+  ObjF        -> do dummyByte name ; UID <$> getVUUID
+  W32ArrF     -> W32Arr <$> getArray name 4 getWord32le
+  W64ArrF     -> W64Arr <$> getArray name 8 getWord64le
+  ObjArrF     -> ObjArr <$> getArray name 24 getVUUID
+  ScriptArrF  -> ScriptArr <$> getArray name 12 getScriptInfo
+  AbilityArrF -> I32Arr <$> getArray name 4 getInt32le
+  StandptArrF -> StandptArr <$> getStandpointArray
+  WayptArrF   -> getWaypointArray name
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getArray :: String -> Word32 -> Get a -> Get [a]
@@ -131,29 +134,62 @@ getArray name exSize elem = do
 
 -- For some reason, there is a lot of structure to these but it is mostly
 -- encoded as if it were a Word64 array.
-getStandPointArray :: Get [StandPoint]
-getStandPointArray = do
+getStandpointArray :: Get [Standpoint]
+getStandpointArray = do
   dummyByte "standpoint"
   fieldSize <- getWord32le
   when (fieldSize /= 8) . fail $
     "unexpected field size for standpoint array: " ++ show fieldSize
-  numFields <- getWord32le
-  when (numFields `mod` 10 /= 0) . fail $
-    "expected number of fields for standpoint array not multiple of 10: " ++
-      show numFields
+  words <- getWord32le
+  let (numFields, rem) = divMod words 10
+  when (rem /= 0) . fail $
+    "expected number of words for standpoint array not multiple of 10: " ++
+      show words
   _sarc <- getWord32le
-  elems <- replicateM (fromIntegral numFields `div` 10) getStandPoint
+  elems <- replicateM (fromIntegral numFields) getStandpoint
   -- TODO: might be information to check in these blocks
   padBlocks <- getWord32le
   elems <$ skip (4 * fromIntegral padBlocks)
 
+-- This one seems to have an even weirder structure
+getWaypointArray :: String -> Get Value
+getWaypointArray name = do
+  dummyByte name
+  fieldSize <- getWord32le
+  when (fieldSize /= 8) . fail $
+    "unexpected field size for waypoint array: " ++ show fieldSize
+  (entries, extra) <- flip divMod 8 <$> getWord32le
+  when (extra /= 2) . fail $
+    "unexpected number of words for waypoint array: " ++
+    show (8*entries + extra)
+  _sarc <- getWord32le
+  numWaypoints <- getWord32le
+  dummy1 <- getWord32le
+  dummy2 <- getWord32le
+  dummy3 <- getWord32le
+  elems <- replicateM (fromIntegral entries) getWaypoint
+  -- TODO: might be information to check in these blocks
+  padBlocks <- getWord32le
+  skip (4 * fromIntegral padBlocks)
+  pure $ WayptArr numWaypoints dummy1 dummy2 dummy3 elems
+
 getScriptInfo :: Get (Word32, Word32, Word32)
 getScriptInfo = (,,) <$> getWord32le <*> getWord32le <*> getWord32le
 
-getStandPoint :: Get StandPoint
-getStandPoint = do
-  sp <- StdPt <$> getWord64le <*> getLoc <*> getOffsets <*> getWord64le
+getStandpoint :: Get Standpoint
+getStandpoint = do
+  sp <- Stdpt <$> getWord64le <*> getLoc <*> getOffsets <*> getWord64le
   sp <$ skip 48
+
+getWaypoint :: Get Waypoint
+getWaypoint =
+  Waypt <$> getWord32le -- flags
+        <*> getLoc      -- location
+        <*> getOffsets  -- offsets
+        <*> getFloatle  -- rotation
+        <*> getWord64be -- anim index bytes in order
+        <*> getWord32le -- delay
+        <*> replicateM 7 getWord32le
 
 getLoc :: Get Loc
 getLoc = L <$> getInt32le <*> getInt32le

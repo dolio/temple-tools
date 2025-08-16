@@ -3,9 +3,10 @@ module Mob
   ( Loc (..)
   , Mob (..)
   , Offsets (..)
-  , StandPoint (..)
+  , Standpoint (..)
   , Value (..)
   , VUUID (..)
+  , Waypoint (..)
   ) where
 
 import Data.Int
@@ -18,13 +19,24 @@ import Temple.Objects.Spec
 data Loc = L { x, y :: !Int32 } deriving (Eq, Ord, Show)
 data Offsets = Off { offx, offy :: !Float } deriving (Eq, Ord, Show)
 
-data StandPoint
-  = StdPt
+data Standpoint
+  = Stdpt
   { mapInfo :: !Word64
   , loc     :: !Loc
   , offsets :: !Offsets
   , jp      :: !Word64
-  }
+  } deriving (Eq, Ord, Show)
+
+data Waypoint
+  = Waypt
+  { wayptFlags :: !Word32
+  , wayptLoc   :: !Loc
+  , wayptOffs  :: !Offsets
+  , wayptRot   :: !Float
+  , wayptAnims :: !Word64
+  , wayptDelay :: !Word32
+  , wayptExtra :: [Word32]
+  } deriving (Eq, Ord, Show)
 
 data Value
   = W32 !Word32
@@ -39,7 +51,8 @@ data Value
   | W64Arr [Word64]
   | ObjArr [VUUID]
   | ScriptArr [(Word32, Word32, Word32)]
-  | StandPtArr [StandPoint]
+  | StandptArr [Standpoint]
+  | WayptArr Word32 Word32 Word32 Word32 [Waypoint]
 
 data VUUID
   = VUUID
