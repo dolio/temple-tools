@@ -20,6 +20,7 @@ executable polymorph-mob
     main-is: Main.hs
 
     other-modules:
+      Bitmap
       Decode
       Display
       Mob

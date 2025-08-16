@@ -13,39 +13,8 @@ import Data.Word
 
 import Temple.Objects.Spec
 
+import Bitmap
 import Mob
-
-newtype Bitmap = BM BS.ByteString
-
-countSet :: Bitmap -> Int
-countSet (BM bs) = BS.foldl' (\n i -> n + popCount i) 0 bs
-
--- Gets the object flags set in order in the bitmap.
---
--- Note: the bitmap starts with location, which is 1, not 0 in the object
--- fields list.
-setFields :: Bitmap -> [ObjectField]
-setFields (BM bs) = BS.foldr thread (const []) bs 0
-  where
-  thread b k !n
-    | b == 0 = k (n+8)
-    | otherwise = fmap (fielded . (+n)) (filter (testBit b) [0..7]) ++ k (n+8)
-
-  fielded :: Int -> ObjectField
-  fielded i = toEnum $ i + 1
-
--- How many 32-bit blocks does it take to encode a size `n` bitmap
-bits2blocks :: Int -> Int
-bits2blocks n | (d,m) <- divMod n 32 = d + if m > 0 then 1 else 0
-
-type2blocks :: ObjectType -> Int
-type2blocks ty
-  = bits2blocks
-  . maximum
-  . fmap fromEnum
-  . filter (hasField ty)
-  . takeWhile (< ExtraF minBound) -- no extra fields
-  $ [minBound .. maxBound]
 
 getMagic :: Get ()
 getMagic = getWord32le >>= guard . (== 0x77)
@@ -86,15 +55,14 @@ getMob = do
   when (fromIntegral numProps /= countSet bitmap)
     (fail "validation failed: numProps does not match actual bits set")
   fields <- getFields $ setFields bitmap
+  isEmpty >>= \b -> when (not b) $
+    fail "etxra bytes at end"
   pure $ Mob {..}
 
 getObjectType :: Get ObjectType
 getObjectType = getWord32le >>= \case
   n | n <= 16 -> pure . toEnum $ fromIntegral n
     | otherwise -> fail $ "objectType out of bounds: " ++ show n
-
-getBitmap :: ObjectType -> Get Bitmap
-getBitmap ty = BM <$> getByteString (type2blocks ty * 4)
 
 -- Every field type larger than 32 bits has a short circuit byte. If this is
 -- 0, they skip encoding 'null' values in the full format. Presumably this is
