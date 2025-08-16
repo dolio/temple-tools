@@ -118,6 +118,28 @@ typeName = \case
   Trap         -> "obj_t_trap"
   Bag          -> "obj_t_bag"
 
+-- Read ToEE name
+typeFromName :: String -> Maybe ObjectType
+typeFromName = \case
+  "obj_t_portal"     -> Just Portal
+  "obj_t_container"  -> Just Container
+  "obj_t_scenery"    -> Just Scenery
+  "obj_t_projectile" -> Just Projectile
+  "obj_t_weapon"     -> Just $ Item Weapon
+  "obj_t_ammo"       -> Just $ Item Ammo
+  "obj_t_armor"      -> Just $ Item Armor
+  "obj_t_money"      -> Just $ Item Money
+  "obj_t_food"       -> Just $ Item Food
+  "obj_t_scroll"     -> Just $ Item Scroll
+  "obj_t_key"        -> Just $ Item Key
+  "obj_t_written"    -> Just $ Item Written
+  "obj_t_generic"    -> Just $ Item Generic
+  "obj_t_pc"         -> Just $ Critter Pc
+  "obj_t_npc"        -> Just $ Critter Npc
+  "obj_t_trap"       -> Just Trap
+  "obj_t_bag"        -> Just Bag
+  _                  -> Nothing
+
 -- Object fields, split out by the type of objects they belong to.
 data ObjectField
   = GeneralF GeneralField
