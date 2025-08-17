@@ -145,7 +145,7 @@ getArray name exSize elem = do
 getString :: Get BS.ByteString
 getString = do
   size <- getWord32le
-  getByteString (fromIntegral size + 1)
+  getByteString (fromIntegral size) <* skip 1 -- presumably null terminator
 
 -- For some reason, there is a lot of structure to these but it is mostly
 -- encoded as if it were a Word64 array.
