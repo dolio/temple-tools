@@ -1,6 +1,7 @@
 
 module Mob
   ( Array (..)
+  , array
   , ArrayPostamble (..)
   , Loc (..)
   , Mob (..)
@@ -19,6 +20,8 @@ import Data.Int
 import Data.Map.Strict (Map)
 import Data.UUID
 import Data.Word
+
+import Bitmap
 
 import Temple.Objects.Spec
 
@@ -54,14 +57,22 @@ data WaypointArr
   , wayptExtra2 :: !Word32
   , wayptExtra3 :: !Word32
   , waypts      :: [Waypoint]
-  , wayptPost   :: ArrayPostamble
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Show)
 
 data Array e
-  = Arr
+  = Dense { content :: [e] }
+  | Sparse
   { content :: [e]
-  , postamble :: ArrayPostamble
-  } deriving (Eq, Ord, Show)
+  , bitmap :: Bitmap
+  } deriving (Eq, Show)
+
+-- Smart constructor that detects array density based on a bitmap. The
+-- underlying size of the array is provided since the element list may have
+-- been decoded from the underlying representation and contain fewer values.
+array :: Int -> [e] -> Bitmap -> Array e
+array sz els bm
+  | isDense sz bm = Dense els
+  | otherwise = Sparse els bm
 
 data Script
   = Script
@@ -82,12 +93,12 @@ data Value
   | W32Arr (Array Word32)
   | W64Arr (Array Word64)
   | ObjArr (Array ObjectId)
-  | ScriptArr (Array Script)
+  | ScriptArr (Map ObjectScript Script)
   | StandptArr (Array Standpoint)
   | WayptArr WaypointArr
   | String !ByteString
   | Null
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Show)
 
 -- This is an identifier for a ToEE object. The actual identifier is the UUID,
 -- which always seems to be in MS GUID format, which is variant 2. There is
@@ -129,4 +140,4 @@ data Mob
   , objId   :: !ObjectId
   , objType :: !ObjectType
   , fields  :: Map ObjectField Value
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Show)

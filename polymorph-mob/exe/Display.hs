@@ -11,6 +11,7 @@ import Numeric (showHex)
 
 import Temple.Objects.Spec
 
+import Bitmap
 import Mob
 
 displayMob :: Mob -> Builder
@@ -91,7 +92,7 @@ displayValue = \case
   W32Arr ws -> displayArray (string8 . show) ws
   W64Arr ws -> displayArray (string8 . show) ws
   ObjArr us -> displayArray (displayObjectId False) us
-  ScriptArr ss -> displayArray displayScript ss
+  ScriptArr ss -> displayScriptArray ss
   StandptArr sps -> displayArray displayStandpoint sps
   String s -> char8 '"' <> byteString s <> char8 '"'
   WayptArr (Waypts {..}) ->
@@ -106,20 +107,20 @@ displayValue = \case
       , string8 $ show wayptExtra3
       , ", \"waypoints\": "
       , displays displayWaypoint waypts
-      , ", \"postamble\": "
-      , displayPostamble wayptPost
       , " }"
       ]
 
 displayArray :: (e -> Builder) -> Array e -> Builder
-displayArray de (Arr {..}) =
+displayArray de (Dense {..}) = displays de content
+displayArray de (Sparse {..}) =
   mconcat
     [ byteString "{ \"elems\": "
     , displays de content
-    , byteString ", \"postamble\": "
-    , displayPostamble postamble
+    , byteString ", \"bitmap\": "
+    , displayBitmap bitmap
     , byteString " }"
     ]
+
 displayLoc :: Loc -> Builder
 displayLoc (L {..}) =
   mconcat
@@ -198,5 +199,24 @@ displayScript (Script {..}) =
     , byteString " }"
     ]
 
-displayPostamble :: ArrayPostamble -> Builder
-displayPostamble (Post ws) = displays (string8 . show) ws
+displayScriptArray :: Map ObjectScript Script -> Builder
+displayScriptArray ss
+  = byteString "\n    { "
+ <> intercalate comma (f <$> toList ss)
+ <> byteString "\n    }"
+ where
+ comma = byteString "\n    , "
+ f :: (ObjectScript, Script) -> Builder
+ f (scn, scr) =
+   mconcat
+     [ char8 '"'
+     , string8 (objectScriptName scn)
+     , byteString "\": "
+     , displayScript scr
+     ]
+
+displayBitmap :: Bitmap -> Builder
+displayBitmap bs = char8 '"' <> displayBits bs <> char8 '"'
+
+intercalate :: Monoid m => m -> [m] -> m
+intercalate e = mconcat . intersperse e

@@ -38,4 +38,8 @@ executable polymorph-mob
     hs-source-dirs: exe
 
     default-language: GHC2024
-    default-extensions: BlockArguments OverloadedStrings RecordWildCards
+    default-extensions:
+      BlockArguments
+      OverloadedStrings
+      RecordWildCards
+      ViewPatterns

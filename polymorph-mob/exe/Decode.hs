@@ -54,6 +54,16 @@ getObjectInfo = do
   oiUnknown5 <- getWord32le
   pure $ ObjInfo {..}
 
+-- Finds the number of bits necessary to store the fields of a given object
+-- type.
+type2bits :: ObjectType -> Int
+type2bits ty
+  = maximum
+  . fmap fromEnum
+  . filter (hasField ty)
+  . takeWhile (< ExtraF minBound) -- no extra fields
+  $ [minBound .. maxBound]
+
 getMob :: Get Mob
 getMob = do
   getMagic
@@ -61,10 +71,10 @@ getMob = do
   objId <- isolate 24 $ getObjectId
   objType <- getObjectType
   numProps <- getWord16le
-  bitmap <- getBitmap objType
+  bitmap <- getBitmap $ type2bits objType
   when (fromIntegral numProps /= countSet bitmap)
     (fail "validation failed: numProps does not match actual bits set")
-  fields <- getFields $ setFields bitmap
+  fields <- getFields $ setFields (GeneralF Location) bitmap
   isEmpty >>= \b -> when (not b) $
     fail "etxra bytes at end"
   pure $ Mob {..}
@@ -96,12 +106,31 @@ getFieldValue name = \case
   W32ArrF     -> shortCircuit $ W32Arr <$> getArray name 4 getWord32le
   W64ArrF     -> shortCircuit $ W64Arr <$> getArray name 8 getWord64le
   ObjArrF     -> shortCircuit $ ObjArr <$> getArray name 24 getObjectId
-  ScriptArrF  -> shortCircuit $ ScriptArr <$> getArray name 12 getScriptInfo
+  ScriptArrF  -> ScriptArr <$> getScriptArray
   AbilityArrF -> shortCircuit $ I32Arr <$> getArray name 4 getInt32le
   StandptArrF -> shortCircuit $ StandptArr <$> getStandpointArray
   WayptArrF   -> shortCircuit $ WayptArr <$> getWaypointArray
   StringF     -> shortCircuit $ String <$> getString
   ty          -> fail $ "unsupported field type: " ++ show ty
+
+getScriptArray :: Get (Map ObjectScript Script)
+getScriptArray = getWord8 >>= \case
+  0 -> pure Map.empty
+  _ -> do
+    fieldSize <- getWord32le
+    when (fieldSize /= 12) . fail $
+      "unexpected field size for script array: " ++ show fieldSize
+    numFields <- getWord32le
+    _sarc <- getWord32le
+    let i = fromIntegral numFields
+    array i <$> replicateM i getScriptInfo <*> getArrayBitmap >>= \case
+      Dense scs -> pure $ Map.fromList $ zip [minBound ..] scs
+      Sparse scs bm
+        | countSet bm == i ->
+          pure . Map.fromList $ zip (setFields minBound bm) scs
+        | otherwise ->
+          fail "bitmap for script array doesn't match number of scripts"
+
 
 getArray :: String -> Word32 -> Get a -> Get (Array a)
 getArray name exSize elem = do
@@ -110,9 +139,8 @@ getArray name exSize elem = do
     "unexpected field size for " ++ name ++ " array: " ++ show fieldSize
   numFields <- getWord32le
   _sarc <- getWord32le
-  Arr
-    <$> replicateM (fromIntegral numFields) elem
-    <*> getArrayPostamble
+  let i = fromIntegral numFields
+  array i <$> replicateM i elem <*> getArrayBitmap
 
 getString :: Get BS.ByteString
 getString = do
@@ -132,9 +160,9 @@ getStandpointArray = do
     "expected number of words for standpoint array not multiple of 10: " ++
       show words
   _sarc <- getWord32le
-  Arr
+  array (fromIntegral words)
     <$> replicateM (fromIntegral numFields) getStandpoint
-    <*> getArrayPostamble
+    <*> getArrayBitmap
 
 -- This one seems to have an even weirder structure
 getWaypointArray :: Get WaypointArr
@@ -142,7 +170,8 @@ getWaypointArray = do
   fieldSize <- getWord32le
   when (fieldSize /= 8) . fail $
     "unexpected field size for waypoint array: " ++ show fieldSize
-  (entries, extra) <- flip divMod 8 <$> getWord32le
+  words <- getWord32le
+  let (entries, extra) = divMod words 8
   when (extra /= 2) . fail $
     "unexpected number of words for waypoint array: " ++
     show (8*entries + extra)
@@ -152,13 +181,15 @@ getWaypointArray = do
   dummy2 <- getWord32le
   dummy3 <- getWord32le
   elems <- replicateM (fromIntegral entries) getWaypoint
-  post <- getArrayPostamble
-  pure $ Waypts numWaypoints dummy1 dummy2 dummy3 elems post
+  bitmap <- getArrayBitmap
+  when (not $ isDense (fromIntegral words) bitmap) . fail $
+    "expected waypoint array to have a dense bitmap"
+  pure $ Waypts numWaypoints dummy1 dummy2 dummy3 elems
 
-getArrayPostamble :: Get ArrayPostamble
-getArrayPostamble = do
-  postBlocks <- getWord32le
-  Post <$> replicateM (fromIntegral postBlocks) getWord32le
+getArrayBitmap :: Get Bitmap
+getArrayBitmap = do
+  size <- getWord32le
+  getBitmapBlocks $ fromIntegral size
 
 getScriptInfo :: Get Script
 getScriptInfo = Script <$> getWord32le <*> getWord32le <*> getWord32le
