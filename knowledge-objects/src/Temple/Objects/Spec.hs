@@ -62,6 +62,53 @@ data ObjectType
   | Bag
   deriving (Eq, Ord, Show)
 
+-- These are the categories of scripts an object can respond to.
+data ObjectScript
+  = SanExamine
+  | SanUse
+  | SanDestroy
+  | SanUnlock
+  | SanGet
+  | SanDrop
+  | SanThrow
+  | SanHit
+  | SanMiss
+  | SanDialog
+  | SanFirstHeartbeat
+  | SanCatchingThiefPc
+  | SanDying
+  | SanEnterCombat
+  | SanExitCombat
+  | SanStartCombat
+  | SanEndCombat
+  | SanBuyObject
+  | SanResurrect
+  | SanHeartbeat
+  | SanLeaderKilling
+  | SanInsertItem
+  | SanWillKos
+  | SanTakingDamage
+  | SanWieldOn
+  | SanWieldOff
+  | SanCritterHits
+  | SanNewSector
+  | SanRemoveItem
+  | SanLeaderSleeping
+  | SanBust
+  | SanDialogOverride
+  | SanTransfer
+  | SanCaughtThief
+  | SanCriticalHit
+  | SanCriticalMiss
+  | SanJoin
+  | SanDisband
+  | SanNewMap
+  | SanTrap
+  | SanTrueSeeing
+  | SanSpellCast
+  | SanUnlockAttempt
+  deriving (Bounded, Enum, Eq, Ord, Show)
+
 instance Bounded ObjectType where
   minBound = Portal
   maxBound = Bag
