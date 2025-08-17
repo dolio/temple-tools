@@ -15,6 +15,7 @@ import Text.Read (readMaybe)
 import Options.Applicative
 
 import Decode
+import Encode
 import Display
 import Mob
 
@@ -22,6 +23,10 @@ data Action
   = Mob2Json
     { _jsonOut :: Maybe FilePath
     , _mobIn   :: FilePath
+    }
+  | Mob2Mob
+    { _mobIn  :: FilePath
+    , _mobOut :: FilePath
     }
   | AnalyzeMob
     { aopts :: AnalyzeOpts
@@ -38,6 +43,9 @@ data AnalyzeOpts
 inputArg :: Parser FilePath
 inputArg = strArgument $ metavar "INPUT_FILE"
 
+outputArg :: Parser FilePath
+outputArg = strArgument $ metavar "OUPUT_FILE"
+
 outputOpt :: Parser (Maybe FilePath)
 outputOpt = option (maybeReader $ Just . Just)
           $ long "output"
@@ -50,6 +58,11 @@ mob2json :: Mod CommandFields Action
 mob2json = command "mob-to-json" $ info cmd desc where
   cmd = Mob2Json <$> outputOpt <*> inputArg
   desc = progDesc "Turn a MOB file into (somewhat) readable JSON"
+
+mob2mob :: Mod CommandFields Action
+mob2mob = command "mob-to-mob" $ info cmd desc where
+  cmd = Mob2Mob <$> inputArg <*> outputArg
+  desc = progDesc "Parse and emit MOB files to check relative idempotence"
 
 analyzeOpts :: Parser AnalyzeOpts
 analyzeOpts = AO <$> failure <*> success <*> proto where
@@ -68,7 +81,7 @@ analyzeMob = command "analyze-mob" $ info cmd desc where
 
 acts :: ParserInfo Action
 acts = info (subs <**> helper) desc where
-  subs = hsubparser $ mob2json <> analyzeMob
+  subs = hsubparser $ mob2json <> mob2mob <> analyzeMob
   desc = progDesc "manipulate various ToEE MOB representations"
 
 main :: IO ()
@@ -79,6 +92,8 @@ main = customExecParser p acts >>= \case
       exitWith ExitSuccess
     where
     out = fromMaybe (mobFile <.> "json") mout
+  Mob2Mob mobIn mobOut ->
+    decodeMobOrFail False mobIn >>= L.writeFile mobOut . encodeMob
   AnalyzeMob {..} -> do
     decodeMobOrFail (quietFailure aopts) mobIn >>=
       performAnalysis mobIn aopts

@@ -22,6 +22,7 @@ executable polymorph-mob
     other-modules:
       Bitmap
       Decode
+      Encode
       Display
       Mob
 

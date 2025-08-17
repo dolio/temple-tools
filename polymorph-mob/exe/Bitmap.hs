@@ -21,6 +21,9 @@ displayBits (BM bs) = BS.foldr f mempty bs
 countSet :: Bitmap -> Int
 countSet (BM bs) = BS.foldl' (\n i -> n + popCount i) 0 bs
 
+countBlocks :: Bitmap -> Int
+countBlocks (BM bs) = BS.length bs `div` 4
+
 -- Gets the object flags set in order in the bitmap. The provided value is what
 -- is considered to be position 0 in the bitmap.
 setFields :: Enum e => e -> Bitmap -> [e]

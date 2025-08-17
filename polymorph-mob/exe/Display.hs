@@ -117,7 +117,7 @@ displayArray de (Sparse {..}) =
     [ byteString "{ \"elems\": "
     , displays de content
     , byteString ", \"bitmap\": "
-    , displayBitmap bitmap
+    , displayBitmap _bitmap
     , byteString " }"
     ]
 

@@ -2,6 +2,7 @@
 module Mob
   ( Array (..)
   , array
+  , bitmap
   , ArrayPostamble (..)
   , Loc (..)
   , Mob (..)
@@ -63,7 +64,7 @@ data Array e
   = Dense { content :: [e] }
   | Sparse
   { content :: [e]
-  , bitmap :: Bitmap
+  , _bitmap :: Bitmap
   } deriving (Eq, Show)
 
 -- Smart constructor that detects array density based on a bitmap. The
@@ -73,6 +74,12 @@ array :: Int -> [e] -> Bitmap -> Array e
 array sz els bm
   | isDense sz bm = Dense els
   | otherwise = Sparse els bm
+
+-- Gets a bitmap appropriate for an array. For a sparse array, this is just
+-- stored. For a dense array, it can be reconstructed from the content.
+bitmap :: Array e -> Bitmap
+bitmap (Sparse {..}) = _bitmap
+bitmap (Dense {..}) = denseBitmap (length content)
 
 data Script
   = Script
