@@ -70,13 +70,9 @@ getMob = do
   objInfo <- isolate 24 $ getObjectInfo
   objId <- isolate 24 $ getObjectId
   objType <- getObjectType
-  numProps <- getWord16le
-  bitmap <- getBitmap $ type2bits objType
-  when (fromIntegral numProps /= countSet bitmap)
-    (fail "validation failed: numProps does not match actual bits set")
-  fields <- getFields $ setFields (GeneralF Location) bitmap
+  fields <- getFields objType
   isEmpty >>= \b -> when (not b) $
-    fail "etxra bytes at end"
+    fail "extra bytes at end"
   pure $ Mob {..}
 
 getObjectType :: Get ObjectType
@@ -176,15 +172,15 @@ getWaypointArray = do
     "unexpected number of words for waypoint array: " ++
     show (8*entries + extra)
   _sarc <- getWord32le
-  numWaypoints <- getWord32le
-  dummy1 <- getWord32le
-  dummy2 <- getWord32le
-  dummy3 <- getWord32le
-  elems <- replicateM (fromIntegral entries) getWaypoint
+  wayptCount <- getWord32le
+  wayptExtra1 <- getWord32le
+  wayptExtra2 <- getWord32le
+  wayptExtra3 <- getWord32le
+  waypts <- replicateM (fromIntegral entries) getWaypoint
   bitmap <- getArrayBitmap
   when (not $ isDense (fromIntegral words) bitmap) . fail $
     "expected waypoint array to have a dense bitmap"
-  pure $ Waypts numWaypoints dummy1 dummy2 dummy3 elems
+  pure $ Waypts {..}
 
 getArrayBitmap :: Get Bitmap
 getArrayBitmap = do
@@ -215,10 +211,14 @@ getLoc = L <$> getInt32le <*> getInt32le
 getOffsets :: Get Offsets
 getOffsets = Off <$> getFloatle <*> getFloatle
 
--- Given a sequence of fields in the order they will occur, reads their values
--- into a map.
-getFields :: [ObjectField] -> Get (Map ObjectField Value)
-getFields fs = do Map.fromList <$> traverse getField fs
+-- Reads the main section of a mob, containing its fields.
+getFields :: ObjectType -> Get (Map ObjectField Value)
+getFields objType = do
+  numProps <- getWord16le
+  bitmap <- getBitmap $ type2bits objType
+  when (fromIntegral numProps /= countSet bitmap)
+    (fail "validation failed: numProps does not match actual bits set")
+  Map.fromList <$> traverse getField (setFields (GeneralF Location) bitmap)
 
 -- Supported fields for a mob file
 getField :: ObjectField -> Get (ObjectField, Value)

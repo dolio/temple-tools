@@ -55,7 +55,7 @@ fromFields off size0 flds =
   slice   0 _  _ = []
   slice pad _ [] = replicate pad 0
   slice pad n ms
-    | (chunk, rest) <- break (<= n+7) ms
+    | (chunk, rest) <- span (<= n+7) ms
     = chunkToByte n chunk : slice (pad-1) (n+8) rest
 
 -- How many 32-bit blocks does it take to encode a size `n` bitmap

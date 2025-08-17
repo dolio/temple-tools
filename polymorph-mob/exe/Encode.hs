@@ -39,10 +39,10 @@ putObjectId (ObjId {..}) = do
   putWord64le variant
   case toWords64 uuid of
     (u0, u1) -> do
-      putWord32le . fromIntegral $ u0 .>>. 32 .&. 0xffffffff
-      putWord16le . fromIntegral $ u0 .>>. 16 .&. 0xffff
+      putWord32le . fromIntegral $ (u0 .>>. 32) .&. 0xffffffff
+      putWord16le . fromIntegral $ (u0 .>>. 16) .&. 0xffff
       putWord16le . fromIntegral $ u0 .&. 0xffff
-      putWord64le u1
+      putWord64be u1
 
 putMob :: Mob -> Put
 putMob (Mob {..}) = do
@@ -67,7 +67,9 @@ putObjectInfo (ObjInfo {..}) = do
 
 putFields :: ObjectType -> Map ObjectField Value -> Put
 putFields ty fields = do
-  putBitmap $ fromFields (GeneralF Location) n (Map.keysSet fields)
+  let bm = fromFields (GeneralF Location) n (Map.keysSet fields)
+  putWord16le . fromIntegral $ countSet bm
+  putBitmap bm
   traverse_ (uncurry putField) $ Map.toList fields
   where
   tweak (flip divMod 8 -> (d, m)) = d + if m == 0 then 0 else 1
@@ -104,8 +106,8 @@ putFieldByType name = \cases
   B32F        (B32 b)          -> putBool32 b
   W64F        (W64 w)          -> putWord8 1 *> putWord64le w
   LocF        (Loc l)          -> putWord8 1 *> putLoc l
-  ObjF        (Obj o)          -> putObjectId o
-  StringF     (String s)       -> putString s
+  ObjF        (Obj o)          -> putWord8 1 *> putObjectId o
+  StringF     (String s)       -> putWord8 1 *> putString s
   W32ArrF     (W32Arr ws)      -> putArray 4 putWord32le ws
   W64ArrF     (W64Arr ws)      -> putArray 8 putWord64le ws
   ObjArrF     (ObjArr os)      -> putArray 24 putObjectId os
@@ -122,6 +124,7 @@ putFieldByType name = \cases
 -- serialized elements from the length of the element list.
 putArray :: Word32 -> (e -> Put) -> Array e -> Put
 putArray sz pe arr = do
+  putWord8 1 -- not short circuitsing
   putWord32le sz
   putWord32le . fromIntegral $ numEntries
   let _sarc = 0 -- TODO: get the right number
@@ -132,15 +135,24 @@ putArray sz pe arr = do
   bm = bitmap arr
   numEntries = length $ content arr
 
+-- For some reason, array bitmaps always seem to be padded to at least two
+-- blocks in actual mob files. Replicating that.
 putArrayBitmap :: Bitmap -> Put
 putArrayBitmap bm = do
-  putWord32le . fromIntegral $ countBlocks bm
+  putWord32le $ fromIntegral n
   putBitmap bm
+  replicateM_ (n-c) $ putWord32le 0
+  where
+  c = countBlocks bm
+  n = max 2 c
 
 putWaypointArray :: WaypointArr -> Put
 putWaypointArray (Waypts {..}) = do
+  putWord8 1                         -- no short circuit
   putWord32le 8                      -- field size
   putWord32le $ fromIntegral words   -- total number of Word64 entries
+  let _sarc = 0 -- TODO: real value
+  putWord32le _sarc
   putWord32le wayptCount             -- the separate waypoint count
   putWord32le wayptExtra1            -- padding?
   putWord32le wayptExtra2            -- padding?
@@ -162,6 +174,7 @@ putWaypoint (Waypt {..}) = do
 
 putStandpointArray :: Array Standpoint -> Put
 putStandpointArray arr = do
+  putWord8 1 -- not short circuiting
   putWord32le 8
   putWord32le $ fromIntegral words
   let _sarc = 0 -- TODO: get the actual value here
@@ -185,13 +198,13 @@ putScriptArray :: Map ObjectScript Script -> Put
 putScriptArray m
   | Map.null m = putWord8 0
   | otherwise = do
-    putWord8 1
+    putWord8 1 -- no short circuit
+    putWord32le 12 -- script field size
     putWord32le . fromIntegral $ Map.size m
     let _sarc = 0 -- TODO: real value
     putWord32le _sarc
     traverse_ putScript $ Map.elems m
     putArrayBitmap . fromFields minBound 6 $ Map.keysSet m
-  where
 
 putLoc :: Loc -> Put
 putLoc (L {..}) = putInt32le x *> putInt32le y
