@@ -92,7 +92,7 @@ getFieldValue name = \case
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
   F32F        -> F32 <$> getFloatle
-  ObjF        -> shortCircuit $ UID <$> getObjectId
+  ObjF        -> shortCircuit $ Obj <$> getObjectId
   W32ArrF     -> shortCircuit $ W32Arr <$> getArray name 4 getWord32le
   W64ArrF     -> shortCircuit $ W64Arr <$> getArray name 8 getWord64le
   ObjArrF     -> shortCircuit $ ObjArr <$> getArray name 24 getObjectId

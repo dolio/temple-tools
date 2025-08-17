@@ -77,7 +77,7 @@ data Value
   | I32 !Int32
   | F32 !Float
   | B32 !Bool
-  | UID !ObjectId
+  | Obj !ObjectId
   | I32Arr (Array Int32)
   | W32Arr (Array Word32)
   | W64Arr (Array Word64)

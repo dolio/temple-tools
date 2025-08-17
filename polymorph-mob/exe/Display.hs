@@ -85,7 +85,7 @@ displayValue = \case
   I32 i -> string8 $ show i
   F32 f -> string8 $ show f
   B32 b -> string8 . fmap toLower $ show b
-  UID u -> displayObjectId False u
+  Obj u -> displayObjectId False u
   Loc l -> displayLoc l
   I32Arr is -> displayArray (string8 . show) is
   W32Arr ws -> displayArray (string8 . show) ws
