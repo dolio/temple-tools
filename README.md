@@ -72,3 +72,14 @@ will be how I work most of the time).
 
   At the moment, the tool only supports extracting a mob to a JSON readout,
   and not all the possible fields are supported.
+
+## Notes
+
+The executables here are built with a command line parser that supports
+completion for bash, zsh and fish. To have a tool generate a completion
+script, run a command like
+
+    polymorph-mob --bash-completion-script `which polymorph-mob`
+
+then put the output in an appropriate location. For other shells, replace
+`bash` with `zsh` or `fish`.
