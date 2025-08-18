@@ -127,8 +127,7 @@ putArray sz pe arr = do
   putWord8 1 -- not short circuitsing
   putWord32le sz
   putWord32le . fromIntegral $ numEntries
-  let _sarc = 0 -- TODO: get the right number
-  putWord32le _sarc
+  putWord32le 0 -- dummy bitmap index
   traverse_ pe $ content arr
   putArrayBitmap bm
   where
@@ -151,8 +150,7 @@ putWaypointArray (Waypts {..}) = do
   putWord8 1                         -- no short circuit
   putWord32le 8                      -- field size
   putWord32le $ fromIntegral words   -- total number of Word64 entries
-  let _sarc = 0 -- TODO: real value
-  putWord32le _sarc
+  putWord32le 0                      -- dummy bitmap index
   putWord32le wayptCount             -- the separate waypoint count
   putWord32le wayptExtra1            -- padding?
   putWord32le wayptExtra2            -- padding?
@@ -177,8 +175,7 @@ putStandpointArray arr = do
   putWord8 1 -- not short circuiting
   putWord32le 8
   putWord32le $ fromIntegral words
-  let _sarc = 0 -- TODO: get the actual value here
-  putWord32le _sarc
+  putWord32le 0 -- dummy bitmap index
   traverse_ putStandpoint $ content arr
   putArrayBitmap bm
   where
@@ -201,8 +198,7 @@ putScriptArray m
     putWord8 1 -- no short circuit
     putWord32le 12 -- script field size
     putWord32le . fromIntegral $ Map.size m
-    let _sarc = 0 -- TODO: real value
-    putWord32le _sarc
+    putWord32le 0 -- dummy bitmap index
     traverse_ putScript $ Map.elems m
     putArrayBitmap . fromFields minBound 6 $ Map.keysSet m
 
