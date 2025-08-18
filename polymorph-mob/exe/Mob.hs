@@ -60,6 +60,40 @@ data WaypointArr
   , waypts      :: [Waypoint]
   } deriving (Eq, Show)
 
+-- Note on ToEE property arrays
+-- ----------------------------
+--
+-- From what I can tell, every ToEE object property array is stored (in the
+-- original game) as a blob of bytes in the following format:
+--
+--   |   4 bytes    |    4 bytes    |   4 bytes    |   variable  |
+--   | Element Size | Element Count | Bitmap Index | Content ... |
+--
+-- Naturally, the variable part has length equal to the product of the frist
+-- two parts. The bitmap id is an offset into a table of bitmaps, and the
+-- bitmap tells you how the contiguous values in the blob are arranged into a
+-- potentially sparse array.
+--
+-- For instance, the object script array would typically be sparse, because
+-- most objects do not have scripts of every type installed. So, the script
+-- array has a handful of script ids stored contiguously, plus a bitmap
+-- specifying which actual scripts are specified. In the case of other arrays,
+-- this will usually be a dense bitmap with a string of all 1s followed by a
+-- string of all 0s padding it out.
+--
+-- The ToEE MOB format appears to just store these arrays by dumping the whole
+-- blob, followed by the bitmap. This means that the index into the bitmap
+-- side table is dumped with it. But this is transient information. It is the
+-- position in the table that the bitmap was stored when the file was written.
+-- But when the file is loaded again, it appears that a new index is allocated
+-- for the bitmap, and the old index is just overwritten. This makes sense,
+-- because otherwise it would rquire assigning unique positions in the table
+-- for every possible object in the game, which sounds like a nightmare.
+--
+-- Point being, this field in the MOB format is garbage. I suspect it exists
+-- only because it was easier for them to dump the whole chunk of memory
+-- directly to a file. It should not matter if something different gets
+-- written there when modifying a file.
 data Array e
   = Dense { content :: [e] }
   | Sparse

@@ -115,7 +115,7 @@ getScriptArray = do
   when (fieldSize /= 12) . fail $
     "unexpected field size for script array: " ++ show fieldSize
   numFields <- getWord32le
-  _sarc <- getWord32le
+  _bitmapIdx <- getWord32le
   let i = fromIntegral numFields
   array i <$> replicateM i getScriptInfo <*> getArrayBitmap >>= \case
     Dense scs -> pure $ Map.fromList $ zip [minBound ..] scs
@@ -125,14 +125,13 @@ getScriptArray = do
       | otherwise ->
         fail "bitmap for script array doesn't match number of scripts"
 
-
 getArray :: String -> Word32 -> Get a -> Get (Array a)
 getArray name exSize elem = do
   fieldSize <- getWord32le
   when (fieldSize /= exSize) . fail $
     "unexpected field size for " ++ name ++ " array: " ++ show fieldSize
   numFields <- getWord32le
-  _sarc <- getWord32le
+  _bitmapId <- getWord32le
   let i = fromIntegral numFields
   array i <$> replicateM i elem <*> getArrayBitmap
 
@@ -153,7 +152,7 @@ getStandpointArray = do
   when (rem /= 0) . fail $
     "expected number of words for standpoint array not multiple of 10: " ++
       show words
-  _sarc <- getWord32le
+  _bitmapIdx <- getWord32le
   array (fromIntegral words)
     <$> replicateM (fromIntegral numFields) getStandpoint
     <*> getArrayBitmap
@@ -169,7 +168,7 @@ getWaypointArray = do
   when (extra /= 2) . fail $
     "unexpected number of words for waypoint array: " ++
     show (8*entries + extra)
-  _sarc <- getWord32le
+  _bitmapIdx <- getWord32le
   wayptCount <- getWord32le
   wayptExtra1 <- getWord32le
   wayptExtra2 <- getWord32le
