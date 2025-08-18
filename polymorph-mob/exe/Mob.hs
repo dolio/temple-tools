@@ -34,6 +34,9 @@ data Offsets = Off { offx, offy :: !Float } deriving (Eq, Ord, Show)
 -- the size would be a multiple of 4, but actually it is a multiple of *10*
 -- and each standpoint contains 6 words of padding that usually seems to be
 -- zeroed. This isn't represented here because of the zeroing.
+--
+-- `jp` is some kind of "jump point" information. It and `mapInfo` might be
+-- 4-byte values with 4 bytes of padding afterwards, but I'm uncertain.
 data Standpoint
   = Stdpt
   { mapInfo :: !Word64
@@ -187,7 +190,9 @@ data ObjectId
 --
 -- The 'compat' was used for that by world builder, but I'm not sure what else
 -- might be there. Some of these fields might even be pointer addresses or the
--- like.
+-- like, or even padding with garbage from uninitialized memory. It seems like
+-- the ToEE devs weren't shy about just dumping the in-memory structures to a
+-- file regardless of whether all the data was meaningful when loading back.
 data ObjectInfo
   = ObjInfo
   { subtype    :: !Word16
