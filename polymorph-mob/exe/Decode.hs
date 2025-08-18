@@ -85,47 +85,45 @@ getObjectType = getWord32le >>= \case
 -- because it takes a fair amount (by early 2000s standards) more space to
 -- encode an empty array than just a single byte (and empty arrays might be
 -- relatively common).
-shortCircuit :: Get Value -> Get Value
-shortCircuit full = getWord8 >>= \case
-  0 -> pure Null
+shortCircuit :: a -> Get a -> Get a
+shortCircuit dflt full = getWord8 >>= \case
+  0 -> pure dflt
   _ -> full
 
 getFieldValue :: String -> FieldType -> Get Value
 getFieldValue name = \case
   W32F        -> W32 <$> getWord32le
-  LocF        -> shortCircuit $ Loc <$> getLoc
-  W64F        -> shortCircuit $ W64 <$> getWord64le
+  LocF        -> shortCircuit Null $ Loc <$> getLoc
+  W64F        -> shortCircuit Null $ W64 <$> getWord64le
   I32F        -> I32 <$> getInt32le
   B32F        -> B32 . (==0xffffffff) <$> getWord32le
   F32F        -> F32 <$> getFloatle
-  ObjF        -> shortCircuit $ Obj <$> getObjectId
-  W32ArrF     -> shortCircuit $ W32Arr <$> getArray name 4 getWord32le
-  W64ArrF     -> shortCircuit $ W64Arr <$> getArray name 8 getWord64le
-  ObjArrF     -> shortCircuit $ ObjArr <$> getArray name 24 getObjectId
-  ScriptArrF  -> ScriptArr <$> getScriptArray
-  AbilityArrF -> shortCircuit $ I32Arr <$> getArray name 4 getInt32le
-  StandptArrF -> shortCircuit $ StandptArr <$> getStandpointArray
-  WayptArrF   -> shortCircuit $ WayptArr <$> getWaypointArray
-  StringF     -> shortCircuit $ String <$> getString
+  ObjF        -> shortCircuit Null $ Obj <$> getObjectId
+  W32ArrF     -> shortCircuit Null $ W32Arr <$> getArray name 4 getWord32le
+  W64ArrF     -> shortCircuit Null $ W64Arr <$> getArray name 8 getWord64le
+  ObjArrF     -> shortCircuit Null $ ObjArr <$> getArray name 24 getObjectId
+  ScriptArrF  -> ScriptArr <$> shortCircuit Map.empty getScriptArray
+  AbilityArrF -> shortCircuit Null $ I32Arr <$> getArray name 4 getInt32le
+  StandptArrF -> shortCircuit Null $ StandptArr <$> getStandpointArray
+  WayptArrF   -> shortCircuit Null $ WayptArr <$> getWaypointArray
+  StringF     -> shortCircuit Null $ String <$> getString
   ty          -> fail $ "unsupported field type: " ++ show ty
 
 getScriptArray :: Get (Map ObjectScript Script)
-getScriptArray = getWord8 >>= \case
-  0 -> pure Map.empty
-  _ -> do
-    fieldSize <- getWord32le
-    when (fieldSize /= 12) . fail $
-      "unexpected field size for script array: " ++ show fieldSize
-    numFields <- getWord32le
-    _sarc <- getWord32le
-    let i = fromIntegral numFields
-    array i <$> replicateM i getScriptInfo <*> getArrayBitmap >>= \case
-      Dense scs -> pure $ Map.fromList $ zip [minBound ..] scs
-      Sparse scs bm
-        | countSet bm == i ->
-          pure . Map.fromList $ zip (setFields minBound bm) scs
-        | otherwise ->
-          fail "bitmap for script array doesn't match number of scripts"
+getScriptArray = do
+  fieldSize <- getWord32le
+  when (fieldSize /= 12) . fail $
+    "unexpected field size for script array: " ++ show fieldSize
+  numFields <- getWord32le
+  _sarc <- getWord32le
+  let i = fromIntegral numFields
+  array i <$> replicateM i getScriptInfo <*> getArrayBitmap >>= \case
+    Dense scs -> pure $ Map.fromList $ zip [minBound ..] scs
+    Sparse scs bm
+      | countSet bm == i ->
+        pure . Map.fromList $ zip (setFields minBound bm) scs
+      | otherwise ->
+        fail "bitmap for script array doesn't match number of scripts"
 
 
 getArray :: String -> Word32 -> Get a -> Get (Array a)
