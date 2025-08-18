@@ -88,34 +88,34 @@ displayValue = \case
   B32 b -> string8 . fmap toLower $ show b
   Obj u -> displayObjectId False u
   Loc l -> displayLoc l
-  I32Arr is -> displayArray (string8 . show) is
-  W32Arr ws -> displayArray (string8 . show) ws
-  W64Arr ws -> displayArray (string8 . show) ws
-  ObjArr us -> displayArray (displayObjectId False) us
+  I32Arr is -> displayArray Nothing (string8 . show) is
+  W32Arr ws -> displayArray Nothing (string8 . show) ws
+  W64Arr ws -> displayArray Nothing (string8 . show) ws
+  ObjArr us -> displayArray Nothing (displayObjectId False) us
   ScriptArr ss -> displayScriptArray ss
-  StandptArr sps -> displayArray displayStandpoint sps
+  StandptArr sps -> displayArray (Just 4) displayStandpoint sps
   String s -> char8 '"' <> byteString s <> char8 '"'
   WayptArr (Waypts {..}) ->
     mconcat
-      [ "{ \"count\": "
+      [ "\n    { \"count\": "
       , string8 $ show wayptCount
-      , ", \"extra1\": "
+      , "\n    , \"extra1\": "
       , string8 $ show wayptExtra1
-      , ", \"extra2\": "
+      , "\n    , \"extra2\": "
       , string8 $ show wayptExtra2
-      , ", \"extra3\": "
+      , "\n    , \"extra3\": "
       , string8 $ show wayptExtra3
-      , ", \"waypoints\": "
-      , displays displayWaypoint waypts
-      , " }"
+      , "\n    , \"waypoints\": "
+      , displays (Just 8) displayWaypoint waypts
+      , "\n    }"
       ]
 
-displayArray :: (e -> Builder) -> Array e -> Builder
-displayArray de (Dense {..}) = displays de content
-displayArray de (Sparse {..}) =
+displayArray :: Maybe Int -> (e -> Builder) -> Array e -> Builder
+displayArray ind de (Dense {..}) = displays ind de content
+displayArray ind de (Sparse {..}) =
   mconcat
     [ byteString "{ \"elems\": "
-    , displays de content
+    , displays ind de content
     , byteString ", \"bitmap\": "
     , displayBitmap _bitmap
     , byteString " }"
@@ -146,46 +146,51 @@ displayStandpoint (Stdpt {..}) =
   mconcat
     [ byteString "{ \"map-info\": "
     , string8 $ show mapInfo
-    , byteString ", \"loc\": "
+    , brk <> byteString ", \"loc\": "
     , displayLoc loc
-    , byteString ", \"offsets\": "
+    , brk <> byteString ", \"offsets\": "
     , displayOffsets offsets
-    , byteString ", \"jp\": "
+    , brk <> byteString ", \"jp\": "
     , string8 $ show jp
-    , byteString " }"
+    , brk <> byteString "}"
     ]
+  where brk = indent $ Just 6
 
 displayWaypoint :: Waypoint -> Builder
 displayWaypoint (Waypt {..}) =
   mconcat
     [ byteString "{ \"flags\": "
     , string8 $ show wayptFlags
-    , byteString ", \"loc\": "
+    , brk <> byteString ", \"loc\": "
     , displayLoc wayptLoc
-    , byteString ", \"offsets\": "
+    , brk <> byteString ", \"offsets\": "
     , displayOffsets wayptOffs
-    , byteString ", \"rotation\": "
+    , brk <> byteString ", \"rotation\": "
     , string8 $ show wayptRot
-    , byteString ", \"anims\": 0x"
+    , brk <> byteString ", \"anims\": 0x"
     , string8 $ showHex wayptAnims ""
-    , byteString ", \"delay\": "
+    , brk <> byteString ", \"delay\": "
     , string8 $ show wayptDelay
-    , byteString ", \"extra\": "
-    , displays (string8 . show) wayptExtra
-    , byteString " }"
+    , brk <> byteString ", \"extra\": "
+    , displays Nothing (string8 . show) wayptExtra
+    , brk <> byteString "}"
     ]
+  where brk = indent $ Just 10
 
 displayUUID :: UUID -> Builder
 displayUUID u =
   byteString "\"" <> byteString (toASCIIBytes u) <> byteString "\""
 
-displays :: (a -> Builder) -> [a] -> Builder
-displays de es =
+displays :: Maybe Int -> (a -> Builder) -> [a] -> Builder
+displays ind de es =
   mconcat
-    [ byteString "["
-    , mconcat . intersperse (char8 ',') $ fmap de es
-    , byteString "]"
+    [ brk <> byteString "[" <> isp
+    , intercalate (brk <> byteString ", ") $ fmap de es
+    , brk <> byteString "]"
     ]
+  where
+  brk = indent ind
+  isp = maybe mempty (const $ char8 ' ') ind
 
 displayScript :: Script -> Builder
 displayScript (Script {..}) =
@@ -220,3 +225,8 @@ displayBitmap bs = char8 '"' <> displayBits bs <> char8 '"'
 
 intercalate :: Monoid m => m -> [m] -> m
 intercalate e = mconcat . intersperse e
+
+indent :: Maybe Int -> Builder
+indent = \case
+  Nothing -> mempty
+  Just ind -> mconcat $ char8 '\n' : replicate ind (char8 ' ')
