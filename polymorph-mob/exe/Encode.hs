@@ -16,7 +16,10 @@ import Data.Word
 import Bitmap
 import Mob
 
-import Temple.Objects.Spec
+import Temple.Object.Field
+import Temple.Object.Field.Type
+import Temple.Object.Script
+import Temple.Object.Type
 
 -- magic version number
 putMagic :: Put

@@ -19,7 +19,33 @@ library
   import: warnings
 
   exposed-modules:
-    Temple.Objects.Spec
+    Temple.Object.Field
+    Temple.Object.Field.General
+    Temple.Object.Field.Portal
+    Temple.Object.Field.Container
+    Temple.Object.Field.Scenery
+    Temple.Object.Field.Projectile
+    Temple.Object.Field.Item
+    Temple.Object.Field.Weapon
+    Temple.Object.Field.Ammo
+    Temple.Object.Field.Armor
+    Temple.Object.Field.Money
+    Temple.Object.Field.Food
+    Temple.Object.Field.Scroll
+    Temple.Object.Field.Key
+    Temple.Object.Field.Written
+    Temple.Object.Field.Bag
+    Temple.Object.Field.Generic
+    Temple.Object.Field.Critter
+    Temple.Object.Field.Pc
+    Temple.Object.Field.Npc
+    Temple.Object.Field.Trap
+    Temple.Object.Field.Extra
+
+    Temple.Object.Field.Type
+
+    Temple.Object.Script
+    Temple.Object.Type
 
   build-depends:
     base ^>=4.20.1.0

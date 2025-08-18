@@ -24,7 +24,9 @@ import Data.Word
 
 import Bitmap
 
-import Temple.Objects.Spec
+import Temple.Object.Field
+import Temple.Object.Script
+import Temple.Object.Type
 
 data Loc = L { locx, locy :: !Int32 } deriving (Eq, Ord, Show)
 data Offsets = Off { offx, offy :: !Float } deriving (Eq, Ord, Show)

@@ -9,7 +9,9 @@ import Data.UUID
 
 import Numeric (showHex)
 
-import Temple.Objects.Spec
+import Temple.Object.Field
+import Temple.Object.Script
+import Temple.Object.Type
 
 import Bitmap
 import Mob

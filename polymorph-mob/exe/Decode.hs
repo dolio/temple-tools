@@ -11,7 +11,10 @@ import Data.Map.Strict qualified as Map
 import Data.UUID
 import Data.Word
 
-import Temple.Objects.Spec
+import Temple.Object.Field
+import Temple.Object.Field.Type
+import Temple.Object.Script
+import Temple.Object.Type
 
 import Bitmap
 import Mob
