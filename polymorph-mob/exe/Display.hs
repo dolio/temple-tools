@@ -91,24 +91,25 @@ displayValue = \case
   I32Arr is -> displayArray Nothing (string8 . show) is
   W32Arr ws -> displayArray Nothing (string8 . show) ws
   W64Arr ws -> displayArray Nothing (string8 . show) ws
-  ObjArr us -> displayArray Nothing (displayObjectId False) us
+  ObjArr us -> displayArray (Just 4) (displayObjectId False) us
   ScriptArr ss -> displayScriptArray ss
   StandptArr sps -> displayArray (Just 4) displayStandpoint sps
   String s -> char8 '"' <> byteString s <> char8 '"'
   WayptArr (Waypts {..}) ->
     mconcat
-      [ "\n    { \"count\": "
+      [ brk <> "{ \"count\": "
       , string8 $ show wayptCount
-      , "\n    , \"extra1\": "
+      , brk <> ", \"extra1\": "
       , string8 $ show wayptExtra1
-      , "\n    , \"extra2\": "
+      , brk <> ", \"extra2\": "
       , string8 $ show wayptExtra2
-      , "\n    , \"extra3\": "
+      , brk <> ", \"extra3\": "
       , string8 $ show wayptExtra3
-      , "\n    , \"waypoints\": "
+      , brk <> ", \"waypoints\": "
       , displays (Just 8) displayWaypoint waypts
-      , "\n    }"
+      , brk <> "}"
       ]
+    where brk = indent $ Just 4
 
 displayArray :: Maybe Int -> (e -> Builder) -> Array e -> Builder
 displayArray ind de (Dense {..}) = displays ind de content
