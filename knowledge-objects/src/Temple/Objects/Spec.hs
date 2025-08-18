@@ -923,28 +923,6 @@ instance Enum ContainerField where
     120 -> ContainerEnd
     n -> error $ "toEnum @ContainerField: bad value: " ++ show n
 
-containerFlagName :: ContainerField -> String
-containerFlagName = \case
-  ContainerBegin            -> "obj_f_container_begin"
-  ContainerFlags            -> "obj_f_container_flags"
-  ContainerLockDC           -> "obj_f_container_lock_dc"
-  ContainerKeyId            -> "obj_f_container_key_id"
-  ContainerInventoryNum     -> "obj_f_container_inventory_num"
-  ContainerInventoryListIdx -> "obj_f_container_inventory_list_idx"
-  ContainerInventorySource  -> "obj_f_container_inventory_source"
-  ContainerNotifyNpc        -> "obj_f_container_notify_npc"
-  ContainerPadInt1          -> "obj_f_container_pad_i_1"
-  ContainerPadInt2          -> "obj_f_container_pad_i_2"
-  ContainerPadInt3          -> "obj_f_container_pad_i_3"
-  ContainerPadInt4          -> "obj_f_container_pad_i_4"
-  ContainerPadInt5          -> "obj_f_container_pad_i_5"
-  ContainerPadObj1          -> "obj_f_container_pad_obj_1"
-  ContainerPadObj2          -> "obj_f_container_pad_obj_2"
-  ContainerPadIntArr1       -> "obj_f_container_pad_ias_1"
-  ContainerPadInt64Arr1     -> "obj_f_container_pad_i64as_1"
-  ContainerPadObjArr1       -> "obj_f_container_pad_objas_1"
-  ContainerEnd              -> "obj_f_container_end"
-
 instance Enum SceneryField where
   fromEnum = \case
     SceneryBegin        -> 121
