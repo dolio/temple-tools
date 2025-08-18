@@ -203,7 +203,7 @@ putScriptArray m
     putArrayBitmap . fromFields minBound 6 $ Map.keysSet m
 
 putLoc :: Loc -> Put
-putLoc (L {..}) = putInt32le x *> putInt32le y
+putLoc (L {..}) = putInt32le locx *> putInt32le locy
 
 putOffsets :: Offsets -> Put
 putOffsets (Off {..}) = putFloatle offx *> putFloatle offy

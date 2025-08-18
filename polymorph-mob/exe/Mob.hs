@@ -26,7 +26,7 @@ import Bitmap
 
 import Temple.Objects.Spec
 
-data Loc = L { x, y :: !Int32 } deriving (Eq, Ord, Show)
+data Loc = L { locx, locy :: !Int32 } deriving (Eq, Ord, Show)
 data Offsets = Off { offx, offy :: !Float } deriving (Eq, Ord, Show)
 
 -- Standpoints are 32 bytes of actual data. The underlying array that stores

@@ -125,9 +125,9 @@ displayLoc :: Loc -> Builder
 displayLoc (L {..}) =
   mconcat
     [ byteString "{ \"locx\": "
-    , string8 $ show x
+    , string8 $ show locx
     , byteString ", \"locy\": "
-    , string8 $ show y
+    , string8 $ show locy
     , byteString " }"
     ]
 
