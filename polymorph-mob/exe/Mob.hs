@@ -29,6 +29,11 @@ import Temple.Objects.Spec
 data Loc = L { x, y :: !Int32 } deriving (Eq, Ord, Show)
 data Offsets = Off { offx, offy :: !Float } deriving (Eq, Ord, Show)
 
+-- Standpoints are 32 bytes of actual data. The underlying array that stores
+-- them is classified as a Word64 array. This might lead you to believe that
+-- the size would be a multiple of 4, but actually it is a multiple of *10*
+-- and each standpoint contains 6 words of padding that usually seems to be
+-- zeroed. This isn't represented here because of the zeroing.
 data Standpoint
   = Stdpt
   { mapInfo :: !Word64
@@ -37,6 +42,11 @@ data Standpoint
   , jp      :: !Word64
   } deriving (Eq, Ord, Show)
 
+-- Waypoints are 64 byte chunks of information that are partitioned into 8
+-- byte elements to encode as a Word64 array. The first six fields seem to be
+-- the actual data, and `wayptExtra` is 7 4-byte words of padding according to
+-- Temple+. This padding seems to typically not be zeroed out, but it's
+-- probably just garbage from uninitialized memory.
 data Waypoint
   = Waypt
   { wayptFlags :: !Word32
@@ -51,6 +61,20 @@ data Waypoint
 data ArrayPostamble = Post [Word32]
   deriving (Eq, Ord, Show)
 
+-- Waypoint arrays are internally built on 8-byte word arrays, but the
+-- information they represent has more structure. The basic array coding in
+-- files just uses an element size of 8, however.
+--
+-- Each Waypoint (see above) requires 8 words to represent (64 bytes). So,
+-- fully storing the waypoints requires a multiple of 8 entries. However,
+-- the start of the array also contains two extra words worth of data, so the
+-- total array size is 2 + 8*n where n is the number of waypoints.
+--
+-- Some information in World Build suggests that the first 4 bytes of this
+-- extra stuff is a waypoint count. It does _not_ always match the actual
+-- number of waypoints in the array, and any extra waypoints do seem to have
+-- reasonable values. I'm not sure what the other 12 bytes are. It would be
+-- unsurprising if it were just padding filled with garbage data.
 data WaypointArr
   = Waypts
   { wayptCount  :: !Word32
