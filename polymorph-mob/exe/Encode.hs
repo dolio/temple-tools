@@ -39,8 +39,8 @@ putObjectId (ObjId {..}) = do
   putWord64le variant
   case toWords64 uuid of
     (u0, u1) -> do
-      putWord32le . fromIntegral $ (u0 .>>. 32) .&. 0xffffffff
-      putWord16le . fromIntegral $ (u0 .>>. 16) .&. 0xffff
+      putWord32le . fromIntegral $ u0 .>>. 32 .&. 0xffffffff
+      putWord16le . fromIntegral $ u0 .>>. 16 .&. 0xffff
       putWord16le . fromIntegral $ u0 .&. 0xffff
       putWord64be u1
 
