@@ -19,13 +19,13 @@ import Mob
 displayMob :: Mob -> Builder
 displayMob (Mob {..})
   = mconcat
-  [ byteString "{ \"object-info\":\n"
+  [ byteString "{ \"mob-info\":\n"
     , displayObjectInfo objInfo
     , char8 '\n'
-  , byteString ", \"object-id\": "
+  , byteString ", \"mob-id\": "
     , displayObjectId True objId
     , byteString "\n"
-  , byteString ", \"object-type\": \""
+  , byteString ", \"mob-type\": \""
     , string8 $ typeName objType
     , byteString "\"\n"
   ]
@@ -174,8 +174,6 @@ displayWaypoint (Waypt {..}) =
     , string8 $ showHex wayptAnims ""
     , brk <> byteString ", \"delay\": "
     , string8 $ show wayptDelay
-    , brk <> byteString ", \"extra\": "
-    , displays Nothing (string8 . show) wayptExtra
     , brk <> byteString "}"
     ]
   where brk = indent $ Just 10

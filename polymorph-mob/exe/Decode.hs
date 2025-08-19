@@ -203,7 +203,7 @@ getWaypoint =
         <*> getFloatle  -- rotation
         <*> getWord64be -- anim index bytes in order
         <*> getWord32le -- delay
-        <*> replicateM 7 getWord32le
+        <* skip 28
 
 getLoc :: Get Loc
 getLoc = L <$> getInt32le <*> getInt32le

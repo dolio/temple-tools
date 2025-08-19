@@ -3,7 +3,6 @@ module Mob
   ( Array (..)
   , array
   , bitmap
-  , ArrayPostamble (..)
   , Loc (..)
   , Mob (..)
   , ObjectId (..)
@@ -48,9 +47,9 @@ data Standpoint
   } deriving (Eq, Ord, Show)
 
 -- Waypoints are 64 byte chunks of information that are partitioned into 8
--- byte elements to encode as a Word64 array. The first six fields seem to be
--- the actual data, and `wayptExtra` is 7 4-byte words of padding according to
--- Temple+. This padding seems to typically not be zeroed out, but it's
+-- byte elements to encode as a Word64 array. These six fields seem to be the
+-- actual data, and there are 7 4-byte words of padding at the end according
+-- to Temple+. This padding seems to typically not be zeroed out, but it's
 -- probably just garbage from uninitialized memory.
 data Waypoint
   = Waypt
@@ -60,11 +59,7 @@ data Waypoint
   , wayptRot   :: !Float
   , wayptAnims :: !Word64
   , wayptDelay :: !Word32
-  , wayptExtra :: [Word32]
   } deriving (Eq, Ord, Show)
-
-data ArrayPostamble = Post [Word32]
-  deriving (Eq, Ord, Show)
 
 -- Waypoint arrays are internally built on 8-byte word arrays, but the
 -- information they represent has more structure. The basic array coding in

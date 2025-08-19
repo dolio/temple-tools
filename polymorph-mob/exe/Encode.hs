@@ -171,7 +171,7 @@ putWaypoint (Waypt {..}) = do
   putFloatle wayptRot
   putWord64be wayptAnims
   putWord32le wayptDelay
-  traverse_ putWord32le wayptExtra
+  replicateM_ 7 $ putWord32le 0 -- padding
 
 putStandpointArray :: Array Standpoint -> Put
 putStandpointArray arr = do
