@@ -1,6 +1,9 @@
 
 module Temple.Object.Type where
 
+import Data.String
+import Text.Megaparsec
+
 data ItemType
   = Weapon
   | Ammo
@@ -99,7 +102,7 @@ instance Enum ObjectType where
     n -> error $ "toEnum @ObjectType: bad value: " ++ show n
 
 -- ToEE name for object types.
-typeName :: ObjectType -> String
+typeName :: IsString s => ObjectType -> s
 typeName = \case
   Portal       -> "obj_t_portal"
   Container    -> "obj_t_container"
@@ -118,26 +121,31 @@ typeName = \case
   Critter Npc  -> "obj_t_npc"
   Trap         -> "obj_t_trap"
   Bag          -> "obj_t_bag"
+{-# inlinable typeName #-}
 
 -- Read ToEE name
-typeFromName :: String -> Maybe ObjectType
-typeFromName = \case
-  "obj_t_portal"     -> Just Portal
-  "obj_t_container"  -> Just Container
-  "obj_t_scenery"    -> Just Scenery
-  "obj_t_projectile" -> Just Projectile
-  "obj_t_weapon"     -> Just $ Item Weapon
-  "obj_t_ammo"       -> Just $ Item Ammo
-  "obj_t_armor"      -> Just $ Item Armor
-  "obj_t_money"      -> Just $ Item Money
-  "obj_t_food"       -> Just $ Item Food
-  "obj_t_scroll"     -> Just $ Item Scroll
-  "obj_t_key"        -> Just $ Item Key
-  "obj_t_written"    -> Just $ Item Written
-  "obj_t_generic"    -> Just $ Item Generic
-  "obj_t_pc"         -> Just $ Critter Pc
-  "obj_t_npc"        -> Just $ Critter Npc
-  "obj_t_trap"       -> Just Trap
-  "obj_t_bag"        -> Just Bag
-  _                  -> Nothing
+parseTypeName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ObjectType
+parseTypeName = try (chunk "obj_t_") *>
+  choice
+    [ Portal       <$ chunk "portal"
+    , Container    <$ chunk "container"
+    , Scenery      <$ chunk "scenery"
+    , Projectile   <$ chunk "projectile"
+    , Item Weapon  <$ chunk "weapon"
+    , Item Ammo    <$ chunk "ammo"
+    , Item Armor   <$ chunk "armor"
+    , Item Money   <$ chunk "money"
+    , Item Food    <$ chunk "food"
+    , Item Scroll  <$ chunk "scroll"
+    , Item Key     <$ chunk "key"
+    , Item Written <$ chunk "written"
+    , Item Generic <$ chunk "generic"
+    , Critter Pc   <$ chunk "pc"
+    , Critter Npc  <$ chunk "npc"
+    , Trap         <$ chunk "trap"
+    , Bag          <$ chunk "bag"
+    ]
 

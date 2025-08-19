@@ -209,7 +209,7 @@ parseFieldName
   :: MonadParsec e s m
   => IsString (Tokens s)
   => m ObjectField
-parseFieldName = chunk "obj_f_" *>
+parseFieldName = try (chunk "obj_f_") *>
   choice
     [ PortalF <$ chunk "portal_" <*> parsePartialPortalFieldName
     , ContainerF <$ chunk "container_" <*> parsePartialContainerFieldName
