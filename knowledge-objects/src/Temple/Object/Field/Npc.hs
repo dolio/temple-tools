@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Npc where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data NpcField
@@ -246,3 +249,64 @@ npcFieldType = \case
   NpcPadInt64Arr5 -> W64ArrF
   NpcEnd -> EndF
 
+parsePartialNpcFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m NpcField
+parsePartialNpcFieldName =
+  choice
+    [ NpcBegin                 <$ chunk "begin"
+    , NpcFlags                 <$ chunk "flags"
+    , NpcLeader                <$ chunk "leader"
+    , NpcAiData                <$ chunk "ai_data"
+    , NpcCombatFocus           <$ chunk "combat_focus"
+    , NpcWhoHitMeLast          <$ chunk "who_hit_me_last"
+    , NpcWaypointsIdx          <$ chunk "waypoints_idx"
+    , NpcWaypointCurrent       <$ chunk "waypoint_current"
+    , NpcFaction               <$ chunk "faction"
+    , NpcRetailPriceMultiplier <$ chunk "retail_price_multiplier"
+    , NpcSubstituteInventory   <$ chunk "substitute_inventory"
+    , NpcReactionBase          <$ chunk "reaction_base"
+    , NpcChallengeRating       <$ chunk "challenge_rating"
+    , NpcReactionPcIdx         <$ chunk "reaction_pc_idx"
+    , NpcReactionLevelIdx      <$ chunk "reaction_level_idx"
+    , NpcReactionTimeIdx       <$ chunk "reaction_time_idx"
+    , NpcGeneratorData         <$ chunk "generator_data"
+    , NpcAiListIdx             <$ chunk "ai_list_idx"
+    , NpcSaveReflexesBonus     <$ chunk "save_reflexes_bonus"
+    , NpcSaveFortitudeBonus    <$ chunk "save_fortitude_bonus"
+    , NpcSaveWillpowerBonus    <$ chunk "save_willpower_bonus"
+    , NpcAcBonus               <$ chunk "ac_bonus"
+    , NpcAddMesh               <$ chunk "add_mesh"
+    , NpcWaypointAnim          <$ chunk "waypoint_anim"
+    , NpcPadInt3               <$ chunk "pad_i_3"
+    , NpcPadInt4               <$ chunk "pad_i_4"
+    , NpcPadInt5               <$ chunk "pad_i_5"
+    , NpcAiFlags64             <$ chunk "ai_flags64"
+    , NpcPadInt642             <$ chunk "pad_i64_2"
+    , NpcPadInt643             <$ chunk "pad_i64_3"
+    , NpcPadInt644             <$ chunk "pad_i64_4"
+    , NpcPadInt645             <$ chunk "pad_i64_5"
+    , NpcHitdiceIdx            <$ chunk "hitdice_idx"
+    , NpcAiListTypeIdx         <$ chunk "ai_list_type_idx"
+    , NpcPadIntArr3            <$ chunk "pad_ias_3"
+    , NpcPadIntArr4            <$ chunk "pad_ias_4"
+    , NpcPadIntArr5            <$ chunk "pad_ias_5"
+    , NpcStandpoints           <$ chunk "standpoints"
+    , NpcPadInt64Arr2          <$ chunk "pad_i64as_2"
+    , NpcPadInt64Arr3          <$ chunk "pad_i64as_3"
+    , NpcPadInt64Arr4          <$ chunk "pad_i64as_4"
+    , NpcPadInt64Arr5          <$ chunk "pad_i64as_5"
+    , NpcEnd                   <$ chunk "end"
+
+    , NpcStandpointDayINVALID
+        <$ chunk "standpoint_day_INTERNAL_DO_NOT_USE"
+    , NpcStandpointNightINVALID
+        <$ chunk "standpoint_night_INTERNAL_DO_NOT_USE"
+    ]
+
+parseNpcFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m NpcField
+parseNpcFieldName = chunk "obj_f_npc_" *> parsePartialNpcFieldName

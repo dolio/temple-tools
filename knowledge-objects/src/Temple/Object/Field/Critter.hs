@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Critter where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 -- Critters encompass both PCs and NPCs/monsters.
@@ -299,3 +302,72 @@ critterFieldType = \case
   CritterPadInt64Arr5 -> W64ArrF
   CritterEnd -> EndF
 
+parsePartialCritterFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m CritterField
+parsePartialCritterFieldName =
+  choice
+    [ CritterBegin                <$ chunk "begin"
+    , CritterFlags                <$ chunk "flags"
+    , CritterFlags2               <$ chunk "flags2"
+    , CritterAbilitiesIdx         <$ chunk "abilities_idx"
+    , CritterLevelIdx             <$ chunk "level_idx"
+    , CritterRace                 <$ chunk "race"
+    , CritterGender               <$ chunk "gender"
+    , CritterAge                  <$ chunk "age"
+    , CritterHeight               <$ chunk "height"
+    , CritterWeight               <$ chunk "weight"
+    , CritterExperience           <$ chunk "experience"
+    , CritterPadInt1              <$ chunk "pad_i_1"
+    , CritterAlignment            <$ chunk "alignment"
+    , CritterDeity                <$ chunk "deity"
+    , CritterDomain1              <$ chunk "domain_1"
+    , CritterDomain2              <$ chunk "domain_2"
+    , CritterAlignmentChoice      <$ chunk "alignment_choice"
+    , CritterSchoolSpecialization <$ chunk "school_specialization"
+    , CritterSpellsKnownIdx       <$ chunk "spells_known_idx"
+    , CritterSpellsMemorizedIdx   <$ chunk "spells_memorized_idx"
+    , CritterSpellsCastIdx        <$ chunk "spells_cast_idx"
+    , CritterFeatIdx              <$ chunk "feat_idx"
+    , CritterFeatCountIdx         <$ chunk "feat_count_idx"
+    , CritterFleeingFrom          <$ chunk "fleeing_from"
+    , CritterPortrait             <$ chunk "portrait"
+    , CritterMoneyIdx             <$ chunk "money_idx"
+    , CritterInventoryNum         <$ chunk "inventory_num"
+    , CritterInventoryListIdx     <$ chunk "inventory_list_idx"
+    , CritterInventorySource      <$ chunk "inventory_source"
+    , CritterDescriptionUnknown   <$ chunk "description_unknown"
+    , CritterFollowerIdx          <$ chunk "follower_idx"
+    , CritterTeleportDest         <$ chunk "teleport_dest"
+    , CritterTeleportMap          <$ chunk "teleport_map"
+    , CritterDeathTime            <$ chunk "death_time"
+    , CritterSkillIdx             <$ chunk "skill_idx"
+    , CritterReach                <$ chunk "reach"
+    , CritterSubdualDamage        <$ chunk "subdual_damage"
+    , CritterPadInt4              <$ chunk "pad_i_4"
+    , CritterPadInt5              <$ chunk "pad_i_5"
+    , CritterSequence             <$ chunk "sequence"
+    , CritterHairStyle            <$ chunk "hair_style"
+    , CritterStrategy             <$ chunk "strategy"
+    , CritterPadInt3              <$ chunk "pad_i_3"
+    , CritterMonsterCategory      <$ chunk "monster_category"
+    , CritterPadInt642            <$ chunk "pad_i64_2"
+    , CritterPadInt643            <$ chunk "pad_i64_3"
+    , CritterPadInt644            <$ chunk "pad_i64_4"
+    , CritterPadInt645            <$ chunk "pad_i64_5"
+    , CritterDamageIdx            <$ chunk "damage_idx"
+    , CritterAttacksIdx           <$ chunk "attacks_idx"
+    , CritterSeenMaplist          <$ chunk "seen_maplist"
+    , CritterPadInt64Arr2         <$ chunk "pad_i64as_2"
+    , CritterPadInt64Arr3         <$ chunk "pad_i64as_3"
+    , CritterPadInt64Arr4         <$ chunk "pad_i64as_4"
+    , CritterPadInt64Arr5         <$ chunk "pad_i64as_5"
+    , CritterEnd                  <$ chunk "end"
+    ]
+
+parseCritterFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m CritterField
+parseCritterFieldName = chunk "obj_f_critter_" *> parsePartialCritterFieldName

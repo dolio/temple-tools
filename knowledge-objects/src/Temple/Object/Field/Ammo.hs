@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Ammo where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data AmmoField
@@ -68,3 +71,26 @@ ammoFieldType = \case
   AmmoPadInt64Arr1 -> W64ArrF
   AmmoEnd -> EndF
 
+parsePartialAmmoFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m AmmoField
+parsePartialAmmoFieldName =
+  choice
+    [ AmmoBegin        <$ chunk "begin"
+    , AmmoFlags        <$ chunk "flags"
+    , AmmoQuantity     <$ chunk "quantity"
+    , AmmoType         <$ chunk "type"
+    , AmmoPadInt1      <$ chunk "pad_i_1"
+    , AmmoPadInt2      <$ chunk "pad_i_2"
+    , AmmoPadObj1      <$ chunk "pad_obj_1"
+    , AmmoPadIntArr1   <$ chunk "pad_ias_1"
+    , AmmoPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , AmmoEnd          <$ chunk "end"
+    ]
+
+parseAmmoFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m AmmoField
+parseAmmoFieldName = chunk "obj_f_ammo_" *> parsePartialAmmoFieldName

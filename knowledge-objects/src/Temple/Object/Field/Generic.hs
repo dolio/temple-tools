@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Generic where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 -- 'Generic' is (I think) a category for items that don't fit into one of
@@ -56,3 +59,23 @@ genericFieldType = \case
   GenericPadInt64Arr1 -> W64ArrF
   GenericEnd -> EndF
 
+parsePartialGenericFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m GenericField
+parsePartialGenericFieldName =
+  choice
+    [ GenericBegin               <$ chunk "begin"
+    , GenericFlags               <$ chunk "flags"
+    , GenericUsageBonus          <$ chunk "usage_bonus"
+    , GenericUsageCountRemaining <$ chunk "usage_count_remaining"
+    , GenericPadIntArr1          <$ chunk "pad_ias_1"
+    , GenericPadInt64Arr1        <$ chunk "pad_i64as_1"
+    , GenericEnd                 <$ chunk "end"
+    ]
+
+parseGenericFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m GenericField
+parseGenericFieldName = chunk "obj_f_generic_" *> parsePartialGenericFieldName

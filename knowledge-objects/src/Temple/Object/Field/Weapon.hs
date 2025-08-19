@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Weapon where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data WeaponField
@@ -128,3 +131,38 @@ weaponFieldType = \case
   WeaponPadInt64Arr1 -> W64ArrF
   WeaponEnd -> EndF
 
+parsePartialWeaponFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m WeaponField
+parsePartialWeaponFieldName =
+  choice
+    [ WeaponBegin           <$ chunk "begin"
+    , WeaponFlags           <$ chunk "flags"
+    , WeaponRange           <$ chunk "range"
+    , WeaponAmmoType        <$ chunk "ammo_type"
+    , WeaponAmmoConsumption <$ chunk "ammo_consumption"
+    , WeaponMissileAid      <$ chunk "missile_aid"
+    , WeaponCritHitChart    <$ chunk "crit_hit_chart"
+    , WeaponAttacktype      <$ chunk "attacktype"
+    , WeaponDamageDice      <$ chunk "damage_dice"
+    , WeaponAnimtype        <$ chunk "animtype"
+    , WeaponType            <$ chunk "type"
+    , WeaponCritRange       <$ chunk "crit_range"
+    , WeaponPadInt1         <$ chunk "pad_i_1"
+    , WeaponPadInt2         <$ chunk "pad_i_2"
+    , WeaponPadObj1         <$ chunk "pad_obj_1"
+    , WeaponPadObj2         <$ chunk "pad_obj_2"
+    , WeaponPadObj3         <$ chunk "pad_obj_3"
+    , WeaponPadObj4         <$ chunk "pad_obj_4"
+    , WeaponPadObj5         <$ chunk "pad_obj_5"
+    , WeaponPadIntArr1      <$ chunk "pad_ias_1"
+    , WeaponPadInt64Arr1    <$ chunk "pad_i64as_1"
+    , WeaponEnd             <$ chunk "end"
+    ]
+
+parseWeaponFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m WeaponField
+parseWeaponFieldName = chunk "obj_f_weapon_" *> parsePartialWeaponFieldName

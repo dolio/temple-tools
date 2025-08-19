@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Food where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data FoodField
@@ -53,3 +56,23 @@ foodFieldType = \case
   FoodPadInt64Arr1 -> W64ArrF
   FoodEnd -> EndF
 
+parsePartialFoodFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m FoodField
+parsePartialFoodFieldName =
+  choice
+    [ FoodBegin        <$ chunk "begin"
+    , FoodFlags        <$ chunk "flags"
+    , FoodPadInt1      <$ chunk "pad_i_1"
+    , FoodPadInt2      <$ chunk "pad_i_2"
+    , FoodPadIntArr1   <$ chunk "pad_ias_1"
+    , FoodPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , FoodEnd          <$ chunk "end"
+    ]
+
+parseFoodFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m FoodField
+parseFoodFieldName = chunk "obj_f_food_" *> parsePartialFoodFieldName

@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Extra where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 -- These seem to be general flags that were probably added later.
@@ -144,3 +147,41 @@ extraFieldType = \case
   Type -> W32F
   PrototypeHandle -> ObjF
 
+parsePartialExtraFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ExtraField
+parsePartialExtraFieldName =
+  choice
+    [ TotalNormal         <$ chunk "total_normal"
+    , TransientBegin      <$ chunk "transient_begin"
+    , RenderColor         <$ chunk "render_color"
+    , RenderColors        <$ chunk "render_colors"
+    , RenderPalette       <$ chunk "render_palette"
+    , RenderScale         <$ chunk "render_scale"
+    , RenderAlpha         <$ chunk "render_alpha"
+    , RenderX             <$ chunk "render_x"
+    , RenderY             <$ chunk "render_y"
+    , RenderWidth         <$ chunk "render_width"
+    , RenderHeight        <$ chunk "render_height"
+    , Palette             <$ chunk "palette"
+    , Color               <$ chunk "color"
+    , Colors              <$ chunk "colors"
+    , RenderFlags         <$ chunk "render_flags"
+    , TempId              <$ chunk "temp_id"
+    , LightHandle         <$ chunk "light_handle"
+    , OverlayLightHandles <$ chunk "overlay_light_handles"
+    , InternalFlags       <$ chunk "internal_flags"
+    , FindNode            <$ chunk "find_node"
+    , AnimationHandle     <$ chunk "animation_handle"
+    , GrappleState        <$ chunk "grapple_state"
+    , TransientEnd        <$ chunk "transient_end"
+    , Type                <$ chunk "type"
+    , PrototypeHandle     <$ chunk "prototype_handle"
+    ]
+
+parseExtraFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ExtraField
+parseExtraFieldName = chunk "obj_f_" *> parsePartialExtraFieldName

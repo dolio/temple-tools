@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Pc where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data PcField
@@ -88,3 +91,30 @@ pcFieldType = \case
   PcPadInt64Arr1 -> W64ArrF
   PcEnd -> EndF
 
+parsePartialPcFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m PcField
+parsePartialPcFieldName =
+  choice
+    [ PcBegin           <$ chunk "begin"
+    , PcFlags           <$ chunk "flags"
+    , PcPadIntArr0      <$ chunk "pad_ias_0"
+    , PcPadInt64Arr0    <$ chunk "pad_i64as_0"
+    , PcPlayerName      <$ chunk "player_name"
+    , PcGlobalFlags     <$ chunk "global_flags"
+    , PcGlobalVariables <$ chunk "global_variables"
+    , PcVoiceIdx        <$ chunk "voice_idx"
+    , PcRollCount       <$ chunk "roll_count"
+    , PcPadInt2         <$ chunk "pad_i_2"
+    , PcWeaponslotsIdx  <$ chunk "weaponslots_idx"
+    , PcPadIntArr2      <$ chunk "pad_ias_2"
+    , PcPadInt64Arr1    <$ chunk "pad_i64as_1"
+    , PcEnd             <$ chunk "end"
+    ]
+
+parsePcFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m PcField
+parsePcFieldName = chunk "obj_f_pc_" *> parsePartialPcFieldName

@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Key where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data KeyField
@@ -53,3 +56,23 @@ keyFieldType = \case
   KeyPadInt64Arr1 -> W64ArrF
   KeyEnd -> EndF
 
+parsePartialKeyFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m KeyField
+parsePartialKeyFieldName =
+  choice
+    [ KeyBegin        <$ chunk "begin"
+    , KeyKeyId        <$ chunk "key_id"
+    , KeyPadInt1      <$ chunk "pad_i_1"
+    , KeyPadInt2      <$ chunk "pad_i_2"
+    , KeyPadIntArr1   <$ chunk "pad_ias_1"
+    , KeyPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , KeyEnd          <$ chunk "end"
+    ]
+
+parseKeyFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m KeyField
+parseKeyFieldName = chunk "obj_f_key_" *> parsePartialKeyFieldName

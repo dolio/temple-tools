@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Money where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data MoneyField
@@ -78,3 +81,28 @@ moneyFieldType = \case
   MoneyPadInt64Arr1 -> W64ArrF
   MoneyEnd -> EndF
 
+parsePartialMoneyFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m MoneyField
+parsePartialMoneyFieldName =
+  choice
+    [ MoneyBegin        <$ chunk "begin"
+    , MoneyFlags        <$ chunk "flags"
+    , MoneyQuantity     <$ chunk "quantity"
+    , MoneyType         <$ chunk "type"
+    , MoneyPadInt1      <$ chunk "pad_i_1"
+    , MoneyPadInt2      <$ chunk "pad_i_2"
+    , MoneyPadInt3      <$ chunk "pad_i_3"
+    , MoneyPadInt4      <$ chunk "pad_i_4"
+    , MoneyPadInt5      <$ chunk "pad_i_5"
+    , MoneyPadIntArr1   <$ chunk "pad_ias_1"
+    , MoneyPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , MoneyEnd          <$ chunk "end"
+    ]
+
+parseMoneyFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m MoneyField
+parseMoneyFieldName = chunk "obj_f_money_" *> parsePartialMoneyFieldName

@@ -24,6 +24,9 @@ module Temple.Object.Field
   , module Temple.Object.Field.Extra
   ) where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Type
 
 import Temple.Object.Field.General
@@ -202,3 +205,31 @@ fieldType = \case
   TrapF f -> trapFieldType f
   ExtraF f -> extraFieldType f
 
+parseFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ObjectField
+parseFieldName = chunk "obj_f_" *>
+  choice
+    [ PortalF <$ chunk "portal_" <*> parsePartialPortalFieldName
+    , ContainerF <$ chunk "container_" <*> parsePartialContainerFieldName
+    , SceneryF <$ chunk "scenery_" <*> parsePartialSceneryFieldName
+    , ProjectileF <$ chunk "projectile_" <*> parsePartialProjectileFieldName
+    , ItemF <$ chunk "item_" <*> parsePartialItemFieldName
+    , WeaponF <$ chunk "weapon_" <*> parsePartialWeaponFieldName
+    , AmmoF <$ chunk "ammo_" <*> parsePartialAmmoFieldName
+    , ArmorF <$ chunk "armor_" <*> parsePartialArmorFieldName
+    , MoneyF <$ chunk "money_" <*> parsePartialMoneyFieldName
+    , FoodF <$ chunk "food_" <*> parsePartialFoodFieldName
+    , ScrollF <$ chunk "scroll_" <*> parsePartialScrollFieldName
+    , KeyF <$ chunk "key_" <*> parsePartialKeyFieldName
+    , WrittenF <$ chunk "written_" <*> parsePartialWrittenFieldName
+    , BagF <$ chunk "bag_" <*> parsePartialBagFieldName
+    , GenericF <$ chunk "generic_" <*> parsePartialGenericFieldName
+    , CritterF <$ chunk "critter_" <*> parsePartialCritterFieldName
+    , PcF <$ chunk "pc_" <*> parsePartialPcFieldName
+    , NpcF <$ chunk "npc_" <*> parsePartialNpcFieldName
+    , TrapF <$ chunk "trap_" <*> parsePartialTrapFieldName
+    , GeneralF <$> parsePartialGeneralFieldName
+    , ExtraF <$> parsePartialExtraFieldName
+    ]

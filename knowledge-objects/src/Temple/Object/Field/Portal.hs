@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Portal where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data PortalField
@@ -88,3 +91,30 @@ portalFieldType = \case
   PortalPadInt64Arr1 -> W64ArrF
   PortalEnd -> EndF
 
+parsePartialPortalFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m PortalField
+parsePartialPortalFieldName =
+  choice
+    [ PortalBegin        <$ chunk "begin"
+    , PortalFlags        <$ chunk "flags"
+    , PortalLockDC       <$ chunk "lock_dc"
+    , PortalKeyId        <$ chunk "key_id"
+    , PortalNotifyNpc    <$ chunk "notify_npc"
+    , PortalPadInt1      <$ chunk "pad_i_1"
+    , PortalPadInt2      <$ chunk "pad_i_2"
+    , PortalPadInt3      <$ chunk "pad_i_3"
+    , PortalPadInt4      <$ chunk "pad_i_4"
+    , PortalPadInt5      <$ chunk "pad_i_5"
+    , PortalPadObj1      <$ chunk "pad_obj_1"
+    , PortalPadIntArr1   <$ chunk "pad_ias_1"
+    , PortalPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , PortalEnd          <$ chunk "end"
+    ]
+
+parsePortalFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m PortalField
+parsePortalFieldName = chunk "obj_f_portal_" *> parsePartialPortalFieldName

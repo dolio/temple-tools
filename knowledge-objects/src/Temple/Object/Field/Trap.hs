@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Trap where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data TrapField
@@ -53,3 +56,23 @@ trapFieldType = \case
   TrapPadInt64Arr1 -> W64ArrF
   TrapEnd -> EndF
 
+parsePartialTrapFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m TrapField
+parsePartialTrapFieldName =
+  choice
+    [ TrapBegin                <$ chunk "begin"
+    , TrapFlags                <$ chunk "flags"
+    , TrapDifficulty           <$ chunk "difficulty"
+    , TrapPadInt2              <$ chunk "pad_i_2"
+    , TrapPadIntArr1           <$ chunk "pad_ias_1"
+    , TrapPadInt64Arr1         <$ chunk "pad_i64as_1"
+    , TrapEnd                  <$ chunk "end"
+    ]
+
+parseTrapFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m TrapField
+parseTrapFieldName = chunk "obj_f_trap_" *> parsePartialTrapFieldName

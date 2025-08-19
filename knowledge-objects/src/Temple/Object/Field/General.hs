@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.General where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 -- General fields belong to every object
@@ -278,3 +281,104 @@ generalFieldType = \case
   PadObjArr2 -> ObjArrF
   GeneralEnd -> EndF
 
+parsePartialGeneralFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m GeneralField
+parsePartialGeneralFieldName =
+  choice
+    [ GeneralBegin <$ chunk "begin"
+    , Location <$ chunk "location"
+    , XOffset <$ chunk "offset_x"
+    , YOffset <$ chunk "offset_y"
+    , ShadowArt2D <$ chunk "2D_shadow_art"
+    , BlitFlags <$ chunk "blit_flags"
+    , BlitColor <$ chunk "blit_color"
+    , Transparency <$ chunk "transparency"
+    , ModelScale <$ chunk "model_scale"
+    , LightFlags <$ chunk "light_flags"
+    , LightMaterial <$ chunk "light_material"
+    , LightColor <$ chunk "light_color"
+    , LightRadius <$ chunk "light_radius"
+    , LightAngleStart <$ chunk "light_angle_start"
+    , LightAngleEnd <$ chunk "light_angle_end"
+    , LightType <$ chunk "light_type"
+    , LightXFacing <$ chunk "light_facing_X"
+    , LightYFacing <$ chunk "light_facing_Y"
+    , LightZFacing <$ chunk "light_facing_Z"
+    , LightXOffset <$ chunk "light_offset_X"
+    , LightYOffset <$ chunk "light_offset_Y"
+    , LightZOffset <$ chunk "light_offset_Z"
+    , Flags <$ chunk "flags"
+    , SpellFlags <$ chunk "spell_flags"
+    , Name <$ chunk "name"
+    , Description <$ chunk "description"
+    , Size <$ chunk "size"
+    , HpPts <$ chunk "hp_pts"
+    , HpAdj <$ chunk "hp_adj"
+    , HpDamage <$ chunk "hp_damage"
+    , Material <$ chunk "material"
+    , ScriptsIdx <$ chunk "scripts_idx"
+    , SoundEffect <$ chunk "sound_effect"
+    , Category <$ chunk "category"
+    , Rotation <$ chunk "rotation"
+    , SpeedWalk <$ chunk "speed_walk"
+    , SpeedRun <$ chunk "speed_run"
+    , BaseMesh <$ chunk "base_mesh"
+    , BaseAnim <$ chunk "base_anim"
+    , Radius <$ chunk "radius"
+    , RenderHeight3D <$ chunk "3d_render_height"
+    , Conditions <$ chunk "conditions"
+    , ConditionArg0 <$ chunk "condition_arg0"
+    , PermanentMods <$ chunk "permanent_mods"
+    , Initiative <$ chunk "initiative"
+    , Dispatcher <$ chunk "dispatcher"
+    , Subinitiative <$ chunk "subinitiative"
+    , SecretdoorFlags <$ chunk "secretdoor_flags"
+    , SecretdoorEffectname <$ chunk "secretdoor_effectname"
+    , SecretdoorDC <$ chunk "secretdoor_dc"
+    , PadInt7 <$ chunk "pad_i_7"
+    , PadInt8 <$ chunk "pad_i_8"
+    , PadInt9 <$ chunk "pad_i_9"
+    , PadInt0 <$ chunk "pad_i_0"
+    , ZOffset <$ chunk "offset_z"
+    , RotationPitch <$ chunk "rotation_pitch"
+    , PadFloat3 <$ chunk "pad_f_3"
+    , PadFloat4 <$ chunk "pad_f_4"
+    , PadFloat5 <$ chunk "pad_f_5"
+    , PadFloat6 <$ chunk "pad_f_6"
+    , PadFloat7 <$ chunk "pad_f_7"
+    , PadFloat8 <$ chunk "pad_f_8"
+    , PadFloat9 <$ chunk "pad_f_9"
+    , PadFloat0 <$ chunk "pad_f_0"
+    , PadInt640 <$ chunk "pad_i64_0"
+    , PadInt641 <$ chunk "pad_i64_1"
+    , PadInt642 <$ chunk "pad_i64_2"
+    , PadInt643 <$ chunk "pad_i64_3"
+    , PadInt644 <$ chunk "pad_i64_4"
+    , LastHitBy <$ chunk "last_hit_by"
+    , PadObj1 <$ chunk "pad_obj_1"
+    , PadObj2 <$ chunk "pad_obj_2"
+    , PadObj3 <$ chunk "pad_obj_3"
+    , PadObj4 <$ chunk "pad_obj_4"
+    , PermanentModData <$ chunk "permanent_mod_data"
+    , AttackTypesIdx <$ chunk "attack_types_idx"
+    , AttackBonusIdx <$ chunk "attack_bonus_idx"
+    , StrategyState <$ chunk "strategy_state"
+    , PadIntArr4 <$ chunk "pad_ias_4"
+    , PadInt64Arr0 <$ chunk "pad_i64as_0"
+    , PadInt64Arr1 <$ chunk "pad_i64as_1"
+    , PadInt64Arr2 <$ chunk "pad_i64as_2"
+    , PadInt64Arr3 <$ chunk "pad_i64as_3"
+    , PadInt64Arr4 <$ chunk "pad_i64as_4"
+    , PadObjArr0 <$ chunk "pad_objas_0"
+    , PadObjArr1 <$ chunk "pad_objas_1"
+    , PadObjArr2 <$ chunk "pad_objas_2"
+    , GeneralEnd <$ chunk "end"
+    ]
+
+parseGeneralFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m GeneralField
+parseGeneralFieldName = chunk "obj_t_" *> parsePartialGeneralFieldName

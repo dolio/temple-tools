@@ -48,10 +48,12 @@ library
     Temple.Object.Type
 
   build-depends:
-    base ^>=4.20.1.0
+    base ^>=4.20.1.0,
+    megaparsec ^>=9.7.0
 
   hs-source-dirs: src
   default-language: GHC2024
 
   default-extensions:
+    OverloadedStrings
     ViewPatterns

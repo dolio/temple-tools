@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Written where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data WrittenField
@@ -68,3 +71,26 @@ writtenFieldType = \case
   WrittenPadInt64Arr1 -> W64ArrF
   WrittenEnd -> EndF
 
+parsePartialWrittenFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m WrittenField
+parsePartialWrittenFieldName =
+  choice
+    [ WrittenBegin         <$ chunk "begin"
+    , WrittenFlags         <$ chunk "flags"
+    , WrittenSubtype       <$ chunk "subtype"
+    , WrittenTextStartLine <$ chunk "text_start_line"
+    , WrittenTextEndLine   <$ chunk "text_end_line"
+    , WrittenPadInt1       <$ chunk "pad_i_1"
+    , WrittenPadInt2       <$ chunk "pad_i_2"
+    , WrittenPadIntArr1    <$ chunk "pad_ias_1"
+    , WrittenPadInt64Arr1  <$ chunk "pad_i64as_1"
+    , WrittenEnd           <$ chunk "end"
+    ]
+
+parseWrittenFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m WrittenField
+parseWrittenFieldName = chunk "obj_f_written_" *> parsePartialWrittenFieldName

@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Scenery where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data SceneryField
@@ -83,3 +86,29 @@ sceneryFieldType = \case
   SceneryPadInt64Arr1 -> W64ArrF
   SceneryEnd -> EndF
 
+parsePartialSceneryFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m SceneryField
+parsePartialSceneryFieldName =
+  choice
+    [ SceneryBegin        <$ chunk "begin"
+    , SceneryFlags        <$ chunk "flags"
+    , SceneryPadObj0      <$ chunk "pad_obj_0"
+    , SceneryRespawnDelay <$ chunk "respawn_delay"
+    , SceneryPadInt0      <$ chunk "pad_i_0"
+    , SceneryPadInt1      <$ chunk "pad_i_1"
+    , SceneryTeleportTo   <$ chunk "teleport_to"
+    , SceneryPadInt4      <$ chunk "pad_i_4"
+    , SceneryPadInt5      <$ chunk "pad_i_5"
+    , SceneryPadObj1      <$ chunk "pad_obj_1"
+    , SceneryPadIntArr1   <$ chunk "pad_ias_1"
+    , SceneryPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , SceneryEnd          <$ chunk "end"
+    ]
+
+parseSceneryFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m SceneryField
+parseSceneryFieldName = chunk "obj_f_scenery_" *> parsePartialSceneryFieldName

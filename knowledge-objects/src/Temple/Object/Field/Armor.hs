@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Armor where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data ArmorField
@@ -68,3 +71,26 @@ armorFieldType = \case
   ArmorPadInt64Arr1 -> W64ArrF
   ArmorEnd -> EndF
 
+parsePartialArmorFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ArmorField
+parsePartialArmorFieldName =
+  choice
+    [ ArmorBegin              <$ chunk "begin"
+    , ArmorFlags              <$ chunk "flags"
+    , ArmorAcAdj              <$ chunk "ac_adj"
+    , ArmorMaxDexBonus        <$ chunk "max_dex_bonus"
+    , ArmorArcaneSpellFailure <$ chunk "arcane_spell_failure"
+    , ArmorArmorCheckPenalty  <$ chunk "armor_check_penalty"
+    , ArmorPadInt1            <$ chunk "pad_i_1"
+    , ArmorPadIntArr1         <$ chunk "pad_ias_1"
+    , ArmorPadInt64Arr1       <$ chunk "pad_i64as_1"
+    , ArmorEnd                <$ chunk "end"
+    ]
+
+parseArmorFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ArmorField
+parseArmorFieldName = chunk "obj_f_armor_" *> parsePartialArmorFieldName

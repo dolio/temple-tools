@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Projectile where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data ProjectileField
@@ -103,3 +106,34 @@ projectileFieldType = \case
   ProjectilePadObjArr1 -> ObjArrF
   ProjectileEnd -> EndF
 
+parsePartialProjectileFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ProjectileField
+parsePartialProjectileFieldName =
+  choice
+    [ ProjectileBegin             <$ chunk "begin"
+    , ProjectileFlagsCombat       <$ chunk "flags_combat"
+    , ProjectileFlagsCombatDamage <$ chunk "flags_combat_damage"
+    , ProjectileParentWeapon      <$ chunk "parent_weapon"
+    , ProjectileParentAmmo        <$ chunk "parent_ammo"
+    , ProjectilePartSysId         <$ chunk "part_sys_id"
+    , ProjectileAccelerationX     <$ chunk "acceleration_x"
+    , ProjectileAccelerationY     <$ chunk "acceleration_y"
+    , ProjectileAccelerationZ     <$ chunk "acceleration_z"
+    , ProjectilePadInt4           <$ chunk "pad_i_4"
+    , ProjectilePadObj1           <$ chunk "pad_obj_1"
+    , ProjectilePadObj2           <$ chunk "pad_obj_2"
+    , ProjectilePadObj3           <$ chunk "pad_obj_3"
+    , ProjectilePadIntArr1        <$ chunk "pad_ias_1"
+    , ProjectilePadInt64Arr1      <$ chunk "pad_i64as_1"
+    , ProjectilePadObjArr1        <$ chunk "pad_objas_1"
+    , ProjectileEnd               <$ chunk "end"
+    ]
+
+parseProjectileFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ProjectileField
+parseProjectileFieldName =
+  chunk "obj_f_projectile_" *> parsePartialProjectileFieldName

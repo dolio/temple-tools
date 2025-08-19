@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Item where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 -- Item fields are common to inventory items.
@@ -199,3 +202,52 @@ itemFieldType = \case
   ItemPadObjArr2 -> ObjArrF
   ItemEnd -> EndF
 
+parsePartialItemFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ItemField
+parsePartialItemFieldName =
+  choice
+    [ ItemBegin                    <$ chunk "begin"
+    , ItemFlags                    <$ chunk "flags"
+    , ItemParent                   <$ chunk "parent"
+    , ItemWeight                   <$ chunk "weight"
+    , ItemWorth                    <$ chunk "worth"
+    , ItemInvAid                   <$ chunk "inv_aid"
+    , ItemInvLocation              <$ chunk "inv_location"
+    , ItemGroundMesh               <$ chunk "ground_mesh"
+    , ItemGroundAnim               <$ chunk "ground_anim"
+    , ItemDescriptionUnknown       <$ chunk "description_unknown"
+    , ItemDescriptionEffects       <$ chunk "description_effects"
+    , ItemSpellIdx                 <$ chunk "spell_idx"
+    , ItemSpellIdxFlags            <$ chunk "spell_idx_flags"
+    , ItemSpellChargesIdx          <$ chunk "spell_charges_idx"
+    , ItemAiAction                 <$ chunk "ai_action"
+    , ItemWearFlags                <$ chunk "wear_flags"
+    , ItemMaterialSlot             <$ chunk "material_slot"
+    , ItemQuantity                 <$ chunk "quantity"
+    , ItemPadInt1                  <$ chunk "pad_i_1"
+    , ItemPadInt2                  <$ chunk "pad_i_2"
+    , ItemPadInt3                  <$ chunk "pad_i_3"
+    , ItemPadInt4                  <$ chunk "pad_i_4"
+    , ItemPadInt5                  <$ chunk "pad_i_5"
+    , ItemPadInt6                  <$ chunk "pad_i_6"
+    , ItemPadObj1                  <$ chunk "pad_obj_1"
+    , ItemPadObj2                  <$ chunk "pad_obj_2"
+    , ItemPadObj3                  <$ chunk "pad_obj_3"
+    , ItemPadObj4                  <$ chunk "pad_obj_4"
+    , ItemPadObj5                  <$ chunk "pad_obj_5"
+    , ItemPadWielderConditionArray <$ chunk "pad_wielder_condition_array"
+    , ItemPadWielderArgumentArray  <$ chunk "pad_wielder_argument_array"
+    , ItemPadInt64Arr1             <$ chunk "pad_i64as_1"
+    , ItemPadInt64Arr2             <$ chunk "pad_i64as_2"
+    , ItemPadObjArr1               <$ chunk "pad_objas_1"
+    , ItemPadObjArr2               <$ chunk "pad_objas_2"
+    , ItemEnd                      <$ chunk "end"
+    ]
+
+parseItemFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ItemField
+parseItemFieldName = chunk "obj_f_item_" *> parsePartialItemFieldName

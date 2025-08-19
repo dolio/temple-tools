@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Scroll where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data ScrollField
@@ -52,3 +55,23 @@ scrollFieldType = \case
   ScrollPadInt64Arr1 -> W64ArrF
   ScrollEnd -> EndF
 
+parsePartialScrollFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ScrollField
+parsePartialScrollFieldName =
+  choice
+    [ ScrollBegin        <$ chunk "begin"
+    , ScrollFlags        <$ chunk "flags"
+    , ScrollPadInt1      <$ chunk "pad_i_1"
+    , ScrollPadInt2      <$ chunk "pad_i_2"
+    , ScrollPadIntArr1   <$ chunk "pad_ias_1"
+    , ScrollPadInt64Arr1 <$ chunk "pad_i64as_1"
+    , ScrollEnd          <$ chunk "end"
+    ]
+
+parseScrollFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ScrollField
+parseScrollFieldName = chunk "obj_f_scroll_" *> parsePartialScrollFieldName

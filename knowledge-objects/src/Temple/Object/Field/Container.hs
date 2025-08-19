@@ -1,6 +1,9 @@
 
 module Temple.Object.Field.Container where
 
+import Data.String
+import Text.Megaparsec
+
 import Temple.Object.Field.Type
 
 data ContainerField
@@ -113,3 +116,36 @@ containerFieldType = \case
   ContainerPadObjArr1 -> ObjArrF
   ContainerEnd -> EndF
 
+parsePartialContainerFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ContainerField
+parsePartialContainerFieldName =
+  choice
+    [ ContainerBegin            <$ chunk "begin"
+    , ContainerFlags            <$ chunk "flags"
+    , ContainerLockDC           <$ chunk "lock_dc"
+    , ContainerKeyId            <$ chunk "key_id"
+    , ContainerInventoryNum     <$ chunk "inventory_num"
+    , ContainerInventoryListIdx <$ chunk "inventory_list_idx"
+    , ContainerInventorySource  <$ chunk "inventory_source"
+    , ContainerNotifyNpc        <$ chunk "notify_npc"
+    , ContainerPadInt1          <$ chunk "pad_i_1"
+    , ContainerPadInt2          <$ chunk "pad_i_2"
+    , ContainerPadInt3          <$ chunk "pad_i_3"
+    , ContainerPadInt4          <$ chunk "pad_i_4"
+    , ContainerPadInt5          <$ chunk "pad_i_5"
+    , ContainerPadObj1          <$ chunk "pad_obj_1"
+    , ContainerPadObj2          <$ chunk "pad_obj_2"
+    , ContainerPadIntArr1       <$ chunk "pad_ias_1"
+    , ContainerPadInt64Arr1     <$ chunk "pad_i64as_1"
+    , ContainerPadObjArr1       <$ chunk "pad_objas_1"
+    , ContainerEnd              <$ chunk "end"
+    ]
+
+parseContainerFieldName
+  :: MonadParsec e s m
+  => IsString (Tokens s)
+  => m ContainerField
+parseContainerFieldName =
+  chunk "obj_f_container_" *> parsePartialContainerFieldName
