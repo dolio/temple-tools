@@ -3,21 +3,54 @@ module Mob
   ( Array (..)
   , array
   , bitmap
+  , Defaulted
+  , finalize
   , Loc (..)
-  , Mob (..)
-  , ObjectId (..)
-  , ObjectInfo (..)
+  , setLocX
+  , setLocY
   , Offsets (..)
+  , setOffX
+  , setOffY
+  , Mob (..)
+  , setMobInfo
+  , setMobId
+  , setMobType
+  , setMobField
+  , ObjectId (..)
+  , setObjectIdVariant
+  , setObjectIdUUID
+  , ObjectInfo (..)
+  , setOInfoSubtype
+  , setOInfoProtoId
   , Standpoint (..)
+  , setStdptMap
+  , setStdptLoc
+  , setStdptOff
+  , setStdptJp
   , Script (..)
+  , setScriptUnk
+  , setScriptCounters
+  , setScriptId
   , Value (..)
   , Waypoint (..)
+  , setWayptFlags
+  , setWayptLoc
+  , setWayptOffs
+  , setWayptRot
+  , setWayptAnims
+  , setWayptDelay
   , WaypointArr (..)
+  , setWayptCount
+  , setWayptExtra1
+  , setWayptExtra2
+  , setWayptExtra3
+  , setWaypts
   ) where
 
 import Data.ByteString (ByteString)
 import Data.Int
-import Data.Map.Strict (Map)
+import Data.Map.Strict (Map, insert)
+import Data.Monoid (Endo (..))
 import Data.UUID
 import Data.Word
 
@@ -27,8 +60,28 @@ import Temple.Object.Field
 import Temple.Object.Script
 import Temple.Object.Type
 
+class Defaulted t where defaultVal :: t
+
+finalize :: Defaulted t => [Endo t] -> t
+finalize = ($ defaultVal) . appEndo . mconcat
+
 data Loc = L { locx, locy :: !Int32 } deriving (Eq, Ord, Show)
 data Offsets = Off { offx, offy :: !Float } deriving (Eq, Ord, Show)
+
+setLocX :: Int32 -> Endo Loc
+setLocX x = Endo \l -> l { locx = x }
+
+setLocY :: Int32 -> Endo Loc
+setLocY y = Endo \l -> l { locy = y }
+
+setOffX :: Float -> Endo Offsets
+setOffX x = Endo \o -> o { offx = x }
+
+setOffY :: Float -> Endo Offsets
+setOffY y = Endo \o -> o { offy = y }
+
+instance Defaulted Loc where defaultVal = L 0 0
+instance Defaulted Offsets where defaultVal = Off 0 0
 
 -- Standpoints are 32 bytes of actual data. The underlying array that stores
 -- them is classified as a Word64 array. This might lead you to believe that
@@ -46,6 +99,21 @@ data Standpoint
   , jp      :: !Word64
   } deriving (Eq, Ord, Show)
 
+setStdptMap :: Word64 -> Endo Standpoint
+setStdptMap m = Endo \s -> s { mapInfo = m }
+
+setStdptLoc :: Loc -> Endo Standpoint
+setStdptLoc l = Endo \s -> s { loc = l }
+
+setStdptOff :: Offsets -> Endo Standpoint
+setStdptOff o = Endo \s -> s { offsets = o }
+
+setStdptJp :: Word64 -> Endo Standpoint
+setStdptJp j = Endo \s -> s { jp = j }
+
+instance Defaulted Standpoint where
+  defaultVal = Stdpt 0 defaultVal defaultVal 0
+
 -- Waypoints are 64 byte chunks of information that are partitioned into 8
 -- byte elements to encode as a Word64 array. These six fields seem to be the
 -- actual data, and there are 7 4-byte words of padding at the end according
@@ -60,6 +128,27 @@ data Waypoint
   , wayptAnims :: !Word64
   , wayptDelay :: !Word32
   } deriving (Eq, Ord, Show)
+
+setWayptFlags :: Word32 -> Endo Waypoint
+setWayptFlags f = Endo \w -> w { wayptFlags = f }
+
+setWayptLoc :: Loc -> Endo Waypoint
+setWayptLoc l = Endo \w -> w { wayptLoc = l }
+
+setWayptOffs :: Offsets -> Endo Waypoint
+setWayptOffs o = Endo \w -> w { wayptOffs = o }
+
+setWayptRot :: Float -> Endo Waypoint
+setWayptRot r = Endo \w -> w { wayptRot = r }
+
+setWayptAnims :: Word64 -> Endo Waypoint
+setWayptAnims a = Endo \w -> w { wayptAnims = a }
+
+setWayptDelay :: Word32 -> Endo Waypoint
+setWayptDelay d = Endo \w -> w { wayptDelay = d }
+
+instance Defaulted Waypoint where
+  defaultVal = Waypt 0 defaultVal defaultVal 0 0 0
 
 -- Waypoint arrays are internally built on 8-byte word arrays, but the
 -- information they represent has more structure. The basic array coding in
@@ -83,6 +172,24 @@ data WaypointArr
   , wayptExtra3 :: !Word32
   , waypts      :: [Waypoint]
   } deriving (Eq, Show)
+
+setWayptCount :: Word32 -> Endo WaypointArr
+setWayptCount c = Endo \w -> w { wayptCount = c }
+
+setWayptExtra1 :: Word32 -> Endo WaypointArr
+setWayptExtra1 e = Endo \w -> w { wayptExtra1 = e }
+
+setWayptExtra2 :: Word32 -> Endo WaypointArr
+setWayptExtra2 e = Endo \w -> w { wayptExtra2 = e }
+
+setWayptExtra3 :: Word32 -> Endo WaypointArr
+setWayptExtra3 e = Endo \w -> w { wayptExtra3 = e }
+
+setWaypts :: [Waypoint] -> Endo WaypointArr
+setWaypts ws = Endo \w -> w { waypts = ws }
+
+instance Defaulted WaypointArr where
+  defaultVal = Waypts 0 0 0 0 []
 
 -- Note on ToEE property arrays
 -- ----------------------------
@@ -146,6 +253,18 @@ data Script
   , scrId       :: !Word32
   } deriving (Eq, Ord, Show)
 
+setScriptUnk :: Word32 -> Endo Script
+setScriptUnk u = Endo \s -> s { scrUnknown = u }
+
+setScriptCounters :: Word32 -> Endo Script
+setScriptCounters c = Endo \s -> s { scrCounters = c }
+
+setScriptId :: Word32 -> Endo Script
+setScriptId i = Endo \s -> s { scrId = i }
+
+instance Defaulted Script where
+  defaultVal = Script 0 0 0
+
 data Value
   = W32 !Word32
   | Loc !Loc
@@ -170,36 +289,61 @@ data Value
 -- also 8 bits of 'variant' information or something. For most mobs this is
 -- just 2, and the lowest 2 bytes always seem to be 2 in practice, but
 -- sometimes the higher 6 bytes are filled with 0xcd for unknown reasons.
+--
+-- I think it's quite likely that only the first 2 bytes are meant to specify
+-- the variant, and the 6 after are padding, to match up with ObjectInfo
+-- below. That would mean that the 0xcd stuff is just junk of some sort
+-- (although suspiciously regular junk).
 data ObjectId
   = ObjId
   { variant :: !Word64
   , uuid    :: !UUID
   } deriving (Eq, Ord, Show)
 
--- This stores object information about a mob. The one field known for sure is
--- `protoId`.
+setObjectIdVariant :: Word64 -> Endo ObjectId
+setObjectIdVariant v = Endo \i -> i { variant = v }
+
+setObjectIdUUID :: UUID -> Endo ObjectId
+setObjectIdUUID u = Endo \i -> i { uuid = u }
+
+instance Defaulted ObjectId where
+  defaultVal = ObjId 0 nil
+
+-- This stores object information about a mob. The known fields are assembled
+-- from a combination of testing and reading information from the DLL, Temple+
+-- and world builder.
 --
--- I have also guessed where the 'subtype' information is stored, but I'm not
--- 100% sure it's the correct position. Unfortunately I don't have access to
--- the corresopnding ToEE struct. The guess is based on WorldBuilder always
--- writing a 1 here, and all .mob files also having a 1, which is a
--- 'prototype' object.
+-- The first field stores the 'subtype' of the object in 16 bits. This is some
+-- indication of how the object is created, but in all MOB files I've seen,
+-- it's 1, which means 'prototype.' The next 6 bytes are unknown, but I think
+-- it's quite likely it's padding.
 --
--- The 'compat' was used for that by world builder, but I'm not sure what else
--- might be there. Some of these fields might even be pointer addresses or the
--- like, or even padding with garbage from uninitialized memory. It seems like
--- the ToEE devs weren't shy about just dumping the in-memory structures to a
--- file regardless of whether all the data was meaningful when loading back.
+-- Next is 32 bits for the prototype id, followed by 12 bits that is likely
+-- padding as well. These and the above padding bits often are not 0, but this
+-- is likely just junk from uninitialized memory.
+--
+-- The reason behind this is that it appears to be that these `ObjectInfo`
+-- structures were wanted to be the same size as `ObjectId` structures, which
+-- are 24 bytes. The prototype id overlaps with the GUID part, and the subtype
+-- overlaps with the variant part. This leaves a lot of padding for this
+-- structure, but much less for ObjectId.
+--
+-- WorldBuilder stores compatibility information in the padding after subtype,
+-- but I think the game probably doesn't care about that part.
 data ObjectInfo
   = ObjInfo
   { subtype    :: !Word16
-  , compat     :: !Word32
-  , oiUnknown2 :: !Word16
   , protoId    :: !Word32
-  , oiUnknown3 :: !Word32
-  , oiUnknown4 :: !Word32
-  , oiUnknown5 :: !Word32
   } deriving (Eq, Ord, Show)
+
+setOInfoSubtype :: Word16 -> Endo ObjectInfo
+setOInfoSubtype s = Endo \o -> o { subtype = s }
+
+setOInfoProtoId :: Word32 -> Endo ObjectInfo
+setOInfoProtoId p = Endo \o -> o { protoId = p }
+
+instance Defaulted ObjectInfo where
+  defaultVal = ObjInfo 0 0
 
 data Mob
   = Mob
@@ -208,3 +352,18 @@ data Mob
   , objType :: !ObjectType
   , fields  :: Map ObjectField Value
   } deriving (Eq, Show)
+
+setMobInfo :: ObjectInfo -> Endo Mob
+setMobInfo o = Endo \m -> m { objInfo = o }
+
+setMobId :: ObjectId -> Endo Mob
+setMobId i = Endo \m -> m { objId = i }
+
+setMobType :: ObjectType -> Endo Mob
+setMobType t = Endo \m -> m { objType = t }
+
+setMobField :: ObjectField -> Value -> Endo Mob
+setMobField f v = Endo \m -> m { fields = insert f v $ fields m }
+
+instance Defaulted Mob where
+  defaultVal = Mob  defaultVal defaultVal Portal mempty

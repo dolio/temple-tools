@@ -61,12 +61,9 @@ putObjectType = putWord32le . fromIntegral . fromEnum
 putObjectInfo :: ObjectInfo -> Put
 putObjectInfo (ObjInfo {..}) = do
   putWord16le subtype
-  putWord32le compat
-  putWord16le oiUnknown2
+  putWord16le 0 ; putWord32le 0 -- padding
   putWord32le protoId
-  putWord32le oiUnknown3
-  putWord32le oiUnknown4
-  putWord32le oiUnknown5
+  replicateM_ 3 $ putWord32le 0 -- more padding
 
 putFields :: ObjectType -> Map ObjectField Value -> Put
 putFields ty fields = do

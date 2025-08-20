@@ -49,12 +49,9 @@ getObjectId = do
 getObjectInfo :: Get ObjectInfo
 getObjectInfo = do
   subtype <- getWord16le
-  compat <- getWord32le
-  oiUnknown2 <- getWord16le
+  skip 6 -- padding
   protoId <- getWord32le
-  oiUnknown3 <- getWord32le
-  oiUnknown4 <- getWord32le
-  oiUnknown5 <- getWord32le
+  skip 12 -- padding
   pure $ ObjInfo {..}
 
 -- Finds the number of bits necessary to store the fields of a given object

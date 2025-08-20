@@ -37,18 +37,8 @@ displayObjectInfo (ObjInfo {..})
   = mconcat
   [ byteString "    { \"subtype\": "
   , string8 $ show subtype
-  , byteString "\n    , \"compat\": 0x"
-  , string8 $ showHex compat ""
-  , byteString "\n    , \"unknown2\": 0x"
-  , string8 $ showHex oiUnknown2 ""
   , byteString "\n    , \"protoId\": "
   , string8 $ show protoId
-  , byteString "\n    , \"unknown3\": 0x"
-  , string8 $ showHex oiUnknown3 ""
-  , byteString "\n    , \"unknown4\": 0x"
-  , string8 $ showHex oiUnknown4 ""
-  , byteString "\n    , \"unknown5\": 0x"
-  , string8 $ showHex oiUnknown5 ""
   , byteString "\n    }"
   ]
 
