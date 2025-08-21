@@ -70,9 +70,6 @@ will be how I work most of the time).
   editors (though the right information to put in one might require
   a specialized tool, like the game itself).
 
-  At the moment, the tool only supports extracting a mob to a JSON readout,
-  and not all the possible fields are supported.
-
 ## Notes
 
 The executables here are built with a command line parser that supports
