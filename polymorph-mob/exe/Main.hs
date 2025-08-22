@@ -4,6 +4,7 @@ import Control.Monad (when)
 import Data.ByteString.Lazy as L
 import Data.ByteString.Builder qualified as Bu
 import Data.Char (toUpper)
+import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.UUID (toString)
 import Data.Word
@@ -13,6 +14,8 @@ import System.FilePath
 import Text.Read (readMaybe)
 
 import Options.Applicative
+
+import Temple.Object.Field
 
 import Condition
 import Decode
@@ -43,6 +46,7 @@ data AnalyzeOpts
   = AO
   { quietFailure  :: Bool
   , reportSuccess :: Bool
+  , unknownConds  :: Bool
   , searchProto   :: Maybe Word32
   }
 
@@ -76,9 +80,13 @@ json2mob = command "json-to-mob" $ info cmd desc where
   desc = progDesc "Turn JSON bac into a MOB file"
 
 analyzeOpts :: Parser AnalyzeOpts
-analyzeOpts = AO <$> failure <*> success <*> proto where
+analyzeOpts = AO <$> failure <*> success <*> unknown <*> proto where
   failure = switch $ long "quiet-failure" <> short 'F'
   success = switch $ long "report-success" <> short 's'
+  unknown = switch
+          $ long "unknown-conditions"
+         <> short 'C'
+         <> help "Print unrecognized condition ids"
   proto = option (maybeReader $ fmap Just . readMaybe)
         $ long "proto"
        <> metavar "PROTO_ID"
@@ -123,11 +131,24 @@ performAnalysis fname (AO {..}) mob = do
     when (not quietFailure) do
       IO.hPutStr stderr fname
       hPutStrLn stderr ": UUID mismatch"
-    exitWith $ ExitFailure 2
 
   when reportSuccess do
     IO.putStr fname
     putStrLn " OK"
+
+  when unknownConds do
+    condNames <- readConditionFile
+    let flds = fields mob
+        f (CondArr cs) = pure cs
+        f _ = Nothing
+        extr = maybe [] content . (f =<<)
+        conds = extr $ Map.lookup (GeneralF Conditions) flds
+        mods = extr $ Map.lookup (GeneralF PermanentMods) flds
+        unk = Prelude.filter (`Map.notMember` condNames) (conds ++ mods)
+    when (not $ Prelude.null unk) do
+      IO.hPutStr stderr fname
+      IO.hPutStr stderr ": unknown conditions: "
+      hPutStrLn stderr $ show unk
 
   case searchProto of
     Nothing -> pure ()
