@@ -20,6 +20,7 @@ data FieldType
   | StringF     -- string
   | W32ArrF     -- array of unsigned 32-bit integers
   | W64ArrF     -- array of unsigned 64-bit integers
+  | CondArrF    -- array of conditions
   | ObjArrF     -- array of objects
   | StandptArrF -- array of standpoints
   | WayptArrF   -- array of waypoints

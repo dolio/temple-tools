@@ -65,6 +65,28 @@ also be relatively flexible with regard to the exact layout.
 Like `mob-to-mob`, the result may not be identical to the original MOB file,
 because garbage values will be replaced with zeroes.
 
+## Conditions
+
+Conditions are stored in MOB files according to their ELF hash, which is a
+32-bit number. By default, `polymorph-mob` will just display the number when
+converting to JSON, although you are free to write a string in the condition
+arrays, and it will understand what to do with them.
+
+If the `data/condition-names` file is installed to an appropriate location,
+then the names in it will be hashed and used to decode numbers in MOB files
+back into names, for better readability. You can add _any_ names to the file,
+and they will be used for decoding, regardless of whether the conditions
+actually exist in the game. The format of the file is just names separated by
+linebreaks, and no trimming is performed at all (so be careful of
+leading/trailing spaces).
+
+The correct place to put the file is
+
+    $XDG_DATA_HOME/polymorph-mob/condition-names
+
+on Windows, this is under the `C:\Users\<user>\AppData\Local\` directory.
+Elsewhere this is under `~/.local/share/` by default.
+
 ## Building
 
 This program is written in Haskell. To build it, you must obtain a Haskell

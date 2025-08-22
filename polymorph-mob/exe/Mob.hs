@@ -276,6 +276,7 @@ data Value
   | I32Arr (Array Int32)
   | W32Arr (Array Word32)
   | W64Arr (Array Word64)
+  | CondArr (Array Word32)
   | ObjArr (Array ObjectId)
   | ScriptArr (Map ObjectScript Script)
   | StandptArr (Array Standpoint)

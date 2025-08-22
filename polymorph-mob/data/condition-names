@@ -1,0 +1,596 @@
+Acrobatic
+Afraid
+AI Controlled
+Aid Another
+Alertness
+Amulet of Mighty Fists
+Amulet of Natural Armor
+Animal Companion
+Animal Companion Animal
+Animal Domain
+AOO
+Armor Bonus
+Armor Enhancement Bonus
+Armor Masterwork
+Armor Shadow
+Armor Silent Moves
+Armor Spell Resistance
+Attribute Enhancement Bonus
+Augment Summoning Enhancement
+Aura of Courage
+Autoend_Turn
+Barbarian
+Barbarian_Fatigued
+Barbarian_Rage
+Barbarian_Raged
+Bard
+Bardic Instrument
+Bardic Music
+Blindness
+Boots of speed
+Bracers of Archery
+Brawl Opponent
+Brawl Player
+Brawl Spectator
+Brew Potion
+Buckler
+Call Familiar
+Cast_Defensively
+Chaos Domain
+Charging
+Charisma Competence Bonus
+Charmed
+Cleave
+Cleric
+Combat_Casting
+Commanded
+Competence
+Composite Bow
+Countersong
+Couraged_Aura
+Cowering
+Craft Magic Arms and Armor
+Craft Rod
+Craft Staff
+Craft Wand
+Craft Wand Level Set
+Craft Wonderous Item
+Crossbow
+Cursed
+Dagger of Venom
+Damage_Ability_Loss
+Damage Bonus
+Damaged
+Dead
+Deal_Normal_Damage
+Deal_Subdual_Damage
+Death Domain
+Defensive Roll
+Deflect_Arrows
+Deflection Bonus
+Destruction Domain
+Destruction Domain Smite
+Detected Evil
+Detect Evil
+Detecting Evil
+Disable AoO
+Disabled
+Disarm
+Disarmed
+Diseased
+Dismiss
+Divine Grace
+Divine_Health
+Divine Might
+Divine Might Bonus
+Dodge
+Dominate
+Druid
+Dwarf
+Dying
+Elemental Gem
+Elemental Resistance
+Elemental Resistance per round
+Elf
+Elixer Timed Skill Bonus
+Encumbered Heavy
+Encumbered Medium
+Encumbered Overburdened
+Evasion
+Evil Domain
+Failed_Copy_Scroll
+Failed Decipher Script
+Fallen_Paladin
+Familiar Hp Bonus
+Familiar Save Bonus
+Familiar Skill Bonus
+Fascinate
+Fast_Movement
+Favored_Enemy
+Feat Expertise
+Feat_Mobility
+feat_stunning_fist
+Feinting
+Fighter
+Fighting Defensively
+Forge Ring
+Flatfooted
+Flurry Of Blows
+Fragarach
+Frost Bow
+Global
+Gnome
+Golden Skull
+Good Domain
+Grappled
+Great_Cleave
+Greater Spell Focus
+Greater Turning
+Greater Two Weapon Fighting
+Greater Two Weapon Fighting Ranger
+Greater_Weapon_Focus
+Greater Weapon Specialization
+Great_Fortitude
+Greatness
+Halfelf
+Halfling
+Halforc
+Healing Domain
+Held
+HoldingCharge
+Holy Water
+Human
+Improved_Critical
+Improved_Evasion
+Improved_Initiative
+Improved_Trip
+Improved_Two_Weapon
+Improved_Two_Weapon_Ranger
+Improved Uncanny Dodge
+Incubating_Disease
+Inspired_Courage
+Investigator
+Invisible
+Iron_Will
+Item Particle System
+Jaer's Spheres of Fire
+Keoghtom's ointment
+Killed By Death Effect
+Ki Strike
+Law Domain
+Lay on Hands
+Lighting_Reflexes
+Luck Domain
+Luck Poison Save Bonus
+Magical Affinity
+Many Shot
+Many Shot Ranger
+Monk
+Monster Banshee Charisma Drain
+Monster Bonus Damage
+Monster Carrion Crawler
+Monster Confusion Immunity
+Monster Damage Type
+Monster DR All
+Monster DR Bludgeoning
+Monster DR Cold
+Monster DR Cold-Holy
+Monster DR Holy
+Monster DR Magic
+Monster DR Silver
+Monster DR Slashing
+Monster Energy Immunity
+Monster Energy Resistance
+Monster Fast Healing
+Monster Fire Bats
+Monster Hooting Fungi
+Monster Incorporeal
+Monster Juggernaut
+Monster Lamia
+Monster Melee Disease
+Monster Melee Paralysis
+Monster Melee Paralysis No Elf
+Monster Melee Poison
+Monster Minotaur Charge
+Monster Ooze
+Monster Ooze Split
+Monster Plant
+Monster Poison Immunity
+Monster Regeneration 1
+Monster Regeneration 2
+Monster Regeneration 5
+Monster Salamander
+Monster Smiting
+Monster Special Fade Out
+Monster Spell Resistance
+Monster Spider
+Monster Splitting
+Monster Stable
+Monster Stirge
+Monster Subdual Immunity
+Monster Subtype Fire
+Monster Superior Two Weapon Fighting
+Monster Undead
+Monster Untripable
+Monster Zombie
+Nature Sense
+Necklace of Detection
+Negotiator
+NewRound_This_Turn
+Nimble Fingers
+Normal Projectile Particles
+NSDiseased
+Opportunist
+Paladin
+Paralyzed
+Paralyzed - Ability Score
+Perm Negative Level
+Persuasive
+Point_Blank_Shot
+Poisoned
+Power Attack
+Prone
+Proof Against Detection Location
+Proof Against Poison
+Protection Domain
+Protection Domain Ward
+Purity Of Body
+Quick_Draw
+Ranger
+Rapid_Shot
+Rapid_Shot_Ranger
+Reckless Offense
+Remove Disease
+Rend
+Ring of Animal Summoning
+Ring of Change
+Ring of freedom of movement
+Ring of Invisibility
+Rod of Smiting
+Rogue
+Run
+Saving Throw Resistance Bonus
+School Specialization
+Scribe Scroll
+Self Sufficient
+Shield Bonus
+Shield Enhancement Bonus
+Skill Circumstance Bonus
+Skill Competence Bonus
+Skill_Focus
+Skill Mastery
+Sleeping
+Smite Evil
+Smiting_Evil
+Sneak_Attack
+Sorcerer
+sp-Aid
+sp-Aid
+sp-Animal Friendship
+sp-Animal Friendship
+sp-Animal Growth
+sp-Animal Growth
+sp-Animal Trance
+sp-Animal Trance
+sp-Animate Dead
+sp-Bane
+sp-Barkskin
+sp-Bestow Curse Ability
+sp-Bestow Curse Actions
+sp-Bestow Curse Rolls
+sp-Bless
+sp-Blindness
+sp-Blink
+sp-Blur
+sp-Break Enchantment
+sp-Bulls Strength
+sp-Call Lightning
+sp-Call Lightning Storm
+sp-Calm Animals
+sp-Calm Emotions
+sp-Cats Grace
+sp-Cause Fear
+sp-Chaos Hammer
+sp-Charm Monster
+sp-Charm Person
+sp-Charm Person or Animal
+sp-Chill Metal
+sp-Chill Touch
+sp-Clairaudience Clairvoyance
+sp-Cloudkill
+sp-Cloudkill-Damage
+sp-Color Spray Blind
+sp-Color Spray Stun
+sp-Color Spray Unconscious
+sp-Command
+sp-Concentrating
+sp-Confusion
+sp-Consecrate
+sp-Consecrate Hit
+sp-Consecrate Hit Undead
+sp-Control Plants
+sp-Control Plants Charm
+sp-Control Plants Disentangle
+sp-Control Plants Entangle
+sp-Control Plants Entangle Pre
+sp-Control Plants Tracking
+sp-Darkvision
+sp-Daze
+sp-Deafness
+sp-Death Knell
+sp-Death Ward
+sp-Delay Poison
+sp-Desecrate
+sp-Desecrate Hit
+sp-Desecrate Hit Undead
+sp-Detect Chaos
+sp-Detect Evil
+sp-Detect Good
+sp-Detect Law
+sp-Detect Magic
+sp-Detect Secret Doors
+sp-Detect Undead
+sp-Dimensional Anchor
+sp-Discern Lies
+sp-Dispel Air
+sp-Dispel Chaos
+sp-Dispel Earth
+sp-Dispel Evil
+sp-Dispel Fire
+sp-Dispel Good
+sp-Dispel Law
+sp-Dispel Magic
+sp-Dispel Water
+sp-Displacement
+sp-Divine Favor
+sp-Divine Power
+sp-Dominate Animal
+sp-Dominate Person
+sp-Doom
+sp-Dust of Disappearance
+sp-Eagles Splendor
+Spell Focus
+Spell Interrupted
+Spell-Poisoned
+Spell Resistance
+sp-Emotion Despair
+sp-Emotion Fear
+sp-Emotion Friendship
+sp-Emotion Hate
+sp-Emotion Hope
+sp-Emotion Rage
+sp-Endurance
+sp-Endure Elements
+sp-Enlarge
+sp-Entangle
+sp-Entangle Off
+sp-Entangle On
+sp-Entropic Shield
+sp-Expeditious Retreat
+sp-Faerie Fire
+sp-False Life
+sp-Fear
+sp-Feeblemind
+sp-Find Traps
+sp-Fire Shield
+sp-Flare
+sp-Fog Cloud
+sp-Fog Cloud Hit
+sp-Foxs Cunning
+sp-Freedom of Movement
+sp-Frog Tongue
+sp-Frog Tongue Grappled
+sp-Frog Tongue Swallowed
+sp-Frog Tongue Swallowing
+sp-Gaseous Form
+sp-Ghoul Touch
+sp-Ghoul Touch Paralyzed
+sp-Ghoul Touch Stench
+sp-Ghoul Touch Stench Hit
+sp-Glibness
+sp-Glitterdust
+sp-Glitterdust Blindness
+sp-Goodberry
+sp-Goodberry Tally
+sp-Grease
+sp-Grease Hit
+sp-Greater Heroism
+sp-Greater Magic Fang
+sp-Greater Magic Weapon
+sp-Guidance
+sp-Gust of Wind
+sp-Halt Undead
+sp-Harm
+sp-Haste
+sp-Heal
+sp-Heat Metal
+sp-Heroism
+sp-Hold Animal
+sp-Hold Monster
+sp-Hold Person
+sp-Hold Portal
+sp-Hold Touch Spell
+sp-Holy Smite
+sp-Ice Storm
+sp-Ice Storm Hit
+sp-Improved Invisibility
+sp-Invisibility
+sp-Invisibility Purge
+sp-Invisibility Purge Hit
+sp-Invisibility Sphere
+sp-Invisibility Sphere Hit
+sp-Invisibility to Animals
+sp-Invisibility to Undead
+sp-Keen Edge
+sp-Lesser Restoration
+sp-Longstrider
+sp-Mage Armor
+sp-Magic Circle Inward
+sp-Magic Circle Outward
+sp-Magic Fang
+sp-Magic Missile
+sp-Magic Stone
+sp-Magic Vestment
+sp-Magic Weapon
+sp-Meld Into Stone
+sp-Melfs Acid Arrow
+sp-Mind Fog
+sp-Mind Fog Hit
+sp-Minor Globe of Invulnerability
+sp-Minor Globe of Invulnerability Hit
+sp-Mirror Image
+sp-Mordenkainens Faithful Hound
+sp-Negative Energy Protection
+sp-Neutralize Poison
+sp-Obscuring Mist
+sp-Obscuring Mist Hit
+sp-Orders Wrath
+sp-Otilukes Resilient Sphere
+sp-Owls Wisdom
+sp-Potion of charisma
+sp-Potion of Enlarge
+sp-Potion of glibness
+sp-Potion of Haste
+sp-Potion of heroism
+sp-Potion of hiding
+sp-Potion of protection from energy
+sp-Potion of sneaking
+sp-Potion of super-heroism
+sp-Prayer
+sp-Produce Flame
+sp-Protection From Alignment
+sp-Protection From Arrows
+sp-Protection From Elements
+sp-Protection From Magic
+sp-Protection From Monster
+sp-Rage
+sp-Raise Dead
+sp-Ray of Enfeeblement
+sp-Reduce
+sp-Reduce Animal
+sp-Remove Blindness
+sp-Remove Curse
+sp-Remove Deafness
+sp-Remove Disease
+sp-Remove Fear
+sp-Remove Paralysis
+sp-Repel Vermin
+sp-Repel Vermin Hit
+sp-Resistance
+sp-Resist Elements
+sp-Restoration
+sp-Resurrection
+sp-Righteous Might
+sp-Ring of Freedom of Movement
+sp-Sanctuary
+sp-Sanctuary Save Failed
+sp-Sanctuary Save Succeeded
+sp-See Invisibility
+sp-Shield
+sp-Shield of Faith
+sp-Shillelagh
+sp-Shocking Grasp
+sp-Shout
+sp-Silence
+sp-Silence Hit
+sp-Sleep
+sp-Sleet Storm
+sp-Sleet Storm Hit
+sp-Slippery Mind
+sp-Slow
+sp-Soften Earth and Stone
+sp-Soften Earth and Stone Hit
+sp-Soften Earth and Stone Hit Save Failed
+sp-Solid Fog
+sp-Solid Fog Hit
+sp-Sound Burst
+sp-Spell Resistance
+sp-Spike Growth
+sp-Spike Growth Damage
+sp-Spike Growth Hit
+sp-Spike Stones
+sp-Spike Stones Damage
+sp-Spike Stones Hit
+sp-Spiritual Weapon
+sp-Stinking Cloud
+sp-Stinking Cloud Hit
+sp-Stinking Cloud Hit Pre
+sp-Stoneskin
+sp-Suggestion
+sp-Summoned
+sp-Summon Swarm
+sp-Tashas Hideous Laughter
+sp-Tree Shape
+sp-True Seeing
+sp-True Strike
+sp-Unholy Blight
+sp-Vampiric Touch
+sp-Virtue
+sp-Vrock Screech
+sp-Vrock Spores
+sp-Web
+sp-Web Off
+sp-Web On
+sp-Wind Wall
+sp-Wind Wall Hit
+Staff Of Striking
+Stealthy
+Still Mind
+Strength Domain
+Strength Domain Feat
+Stunned
+StunningFist_Attacking
+Suggestion
+Surprised
+SurpriseRound
+Sword of Life Stealing
+Temp_Ability_Loss
+Temp Negative Level
+Temporary_Hit_Points
+Test
+Thieves Tools
+Thieves Tools Masterwork
+Timed-Disappear
+To Hit Bonus
+Total Defense
+Toughness
+Track
+Travel Domain
+Turned
+Turn Undead
+Two_Weapon
+Two Weapon Defense
+Two_Weapon_Ranger
+Uncanny Dodge
+Unconscious
+Unholy Water
+UseableItem
+Useable Item X Times Per Day
+UseableMagicStaff
+Venom_Immunity_Druid
+Weapon Bane
+Weapon Chaotic
+Weapon Defending Bonus
+Weapon Disruption
+Weapon Enhancement Bonus
+Weapon_Finesse
+Weapon Flame Tongue
+Weapon Flaming
+Weapon Flaming Burst
+Weapon_Focus
+Weapon Frost
+Weapon Holy
+Weapon Icy Burst
+Weapon Keen
+Weapon Lawful
+Weapon Masterwork
+Weapon Mighty Cleaving
+Weapon Shock
+Weapon Shocking Burst
+Weapon Silver
+Weapon_Specialization
+Weapon Unholy
+Whirlwind_Attack
+Wholeness of Body
+Wild Shape
+Wizard

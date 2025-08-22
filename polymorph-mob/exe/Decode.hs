@@ -102,6 +102,7 @@ getFieldValue name = \case
   W32ArrF     -> shortCircuit Null $ W32Arr <$> getArray name 4 getWord32le
   W64ArrF     -> shortCircuit Null $ W64Arr <$> getArray name 8 getWord64le
   ObjArrF     -> shortCircuit Null $ ObjArr <$> getArray name 24 getObjectId
+  CondArrF    -> shortCircuit Null $ CondArr <$> getArray name 4 getWord32le
   ScriptArrF  -> ScriptArr <$> shortCircuit Map.empty getScriptArray
   AbilityArrF -> shortCircuit Null $ I32Arr <$> getArray name 4 getInt32le
   StandptArrF -> shortCircuit Null $ StandptArr <$> getStandpointArray

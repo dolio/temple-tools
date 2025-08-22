@@ -14,6 +14,7 @@ import Text.Read (readMaybe)
 
 import Options.Applicative
 
+import Condition
 import Decode
 import Encode
 import Display
@@ -98,7 +99,8 @@ main :: IO ()
 main = customExecParser p acts >>= \case
   Mob2Json mout mobFile ->
     decodeMobOrFail False mobFile >>= \mob -> do
-      Bu.writeFile out $ displayMob mob
+      condNames <- readConditionFile
+      Bu.writeFile out $ displayMob condNames mob
       exitWith ExitSuccess
     where
     out = fromMaybe (mobFile <.> "json") mout

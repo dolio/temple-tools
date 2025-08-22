@@ -233,9 +233,9 @@ generalFieldType = \case
   BaseAnim -> W32F
   Radius -> F32F
   RenderHeight3D -> F32F
-  Conditions -> W32ArrF
+  Conditions -> CondArrF
   ConditionArg0 -> W32ArrF
-  PermanentMods -> W32ArrF
+  PermanentMods -> CondArrF
   Initiative -> W32F
   Dispatcher -> B32F
   Subinitiative -> W32F

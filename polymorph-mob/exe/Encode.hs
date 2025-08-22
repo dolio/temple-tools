@@ -110,6 +110,7 @@ putFieldByType name = \cases
   StringF     (String s)       -> putWord8 1 *> putString s
   W32ArrF     (W32Arr ws)      -> putArray 4 putWord32le ws
   W64ArrF     (W64Arr ws)      -> putArray 8 putWord64le ws
+  CondArrF    (CondArr cs)     -> putArray 4 putWord32le cs
   ObjArrF     (ObjArr os)      -> putArray 24 putObjectId os
   StandptArrF (StandptArr sps) -> putStandpointArray sps
   WayptArrF   (WayptArr wps)   -> putWaypointArray wps

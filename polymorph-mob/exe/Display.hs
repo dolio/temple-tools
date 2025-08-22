@@ -1,11 +1,14 @@
 
 module Display (displayMob) where
 
+import Data.ByteString (ByteString)
 import Data.ByteString.Builder
 import Data.Char (toLower)
 import Data.List (intersperse)
-import Data.Map.Strict (Map, toList)
+import Data.Map.Strict (Map)
+import Data.Map.Strict qualified as Map
 import Data.UUID
+import Data.Word
 
 import Numeric (showHex)
 
@@ -16,8 +19,8 @@ import Temple.Object.Type
 import Bitmap
 import Mob
 
-displayMob :: Mob -> Builder
-displayMob (Mob {..})
+displayMob :: Map Word32 ByteString -> Mob -> Builder
+displayMob condNames (Mob {..})
   = mconcat
   [ byteString "{ \"mob-info\":\n"
     , displayObjectInfo objInfo
@@ -29,7 +32,7 @@ displayMob (Mob {..})
     , string8 $ typeName objType
     , byteString "\"\n"
   ]
-  <> displayFields fields
+  <> displayFields condNames fields
   <> byteString "}\n"
 
 displayObjectInfo :: ObjectInfo -> Builder
@@ -57,21 +60,22 @@ displayObjectId newline (ObjId {..})
   where
   break | newline = byteString "\n    " | otherwise = char8 ' '
 
-displayFields :: Map ObjectField Value -> Builder
-displayFields = foldMap (uncurry displayField) . toList
+displayFields :: Map Word32 ByteString -> Map ObjectField Value -> Builder
+displayFields condNames =
+  foldMap (uncurry $ displayField condNames) . Map.toList
 
-displayField :: ObjectField -> Value -> Builder
-displayField fld val
+displayField :: Map Word32 ByteString -> ObjectField -> Value -> Builder
+displayField condNames fld val
   = mconcat
   [ byteString ", \""
   , string8 $ fieldName fld
   , byteString "\": "
-  , displayValue val
+  , displayValue condNames val
   , byteString "\n"
   ]
 
-displayValue :: Value -> Builder
-displayValue = \case
+displayValue :: Map Word32 ByteString -> Value -> Builder
+displayValue condNames = \case
   Null -> byteString "null"
   W32 w -> string8 $ show w
   W64 w -> string8 $ show w
@@ -84,6 +88,7 @@ displayValue = \case
   W32Arr ws -> displayArray Nothing (string8 . show) ws
   W64Arr ws -> displayArray Nothing (string8 . show) ws
   ObjArr us -> displayArray (Just 4) (displayObjectId False) us
+  CondArr cs -> displayArray (Just 4) (displayCondition condNames) cs
   ScriptArr ss -> displayScriptArray ss
   StandptArr sps -> displayArray (Just 4) displayStandpoint sps
   String s -> char8 '"' <> byteString s <> char8 '"'
@@ -113,6 +118,12 @@ displayArray ind de (Sparse {..}) =
     , displayBitmap _bitmap
     , byteString " }"
     ]
+
+displayCondition :: Map Word32 ByteString -> Word32 -> Builder
+displayCondition condNames w
+  | Just name <- Map.lookup w condNames =
+    char8 '"' <> byteString name <> char8 '"'
+  | otherwise = string8 $ show w
 
 displayLoc :: Loc -> Builder
 displayLoc (L {..}) =
@@ -198,7 +209,7 @@ displayScript (Script {..}) =
 displayScriptArray :: Map ObjectScript Script -> Builder
 displayScriptArray ss
   = byteString "\n    { "
- <> intercalate comma (f <$> toList ss)
+ <> intercalate comma (f <$> Map.toList ss)
  <> byteString "\n    }"
  where
  comma = byteString "\n    , "
