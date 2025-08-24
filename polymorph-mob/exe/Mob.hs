@@ -16,9 +16,11 @@ module Mob
   , setMobId
   , setMobType
   , setMobField
+  , MobDiff (..)
   , ObjectId (..)
   , setObjectIdVariant
   , setObjectIdUUID
+  , objectIdToFileName
   , ObjectInfo (..)
   , setOInfoSubtype
   , setOInfoProtoId
@@ -31,6 +33,18 @@ module Mob
   , setScriptUnk
   , setScriptCounters
   , setScriptId
+  , SpellType (..)
+  , Metamagic (..)
+  , SpellData (..)
+  , setSpellEnum
+  , setSpellClass
+  , setSpellLevel
+  , setSpellType
+  , setSpellUsed
+  , setSpellMeta
+  , setSpellInd1
+  , setSpellInd2
+  , setSpellInd3
   , Value (..)
   , Waypoint (..)
   , setWayptFlags
@@ -45,9 +59,11 @@ module Mob
   , setWayptExtra2
   , setWayptExtra3
   , setWaypts
+  , Format (..)
   ) where
 
 import Data.ByteString (ByteString)
+import Data.Char (toUpper)
 import Data.Int
 import Data.Map.Strict (Map, insert)
 import Data.Monoid (Endo (..))
@@ -262,8 +278,64 @@ setScriptCounters c = Endo \s -> s { scrCounters = c }
 setScriptId :: Word32 -> Endo Script
 setScriptId i = Endo \s -> s { scrId = i }
 
+
 instance Defaulted Script where
   defaultVal = Script 0 0 0
+
+data SpellType
+  = SpellNone
+  | SpellKnown
+  | SpellMemorized
+  | SpellCast
+  | SpellAtWill
+  deriving (Bounded, Enum, Eq, Ord, Show)
+
+newtype Metamagic = Mm Word32
+  deriving (Eq, Ord, Show)
+
+data SpellData
+  = Spell
+  { spellEnum  :: Word32
+  , spellClass :: Word32
+  , spellLevel :: Word32
+  , spellType  :: SpellType
+  , spellUsed  :: Bool
+  , spellMeta  :: Metamagic
+  -- something to do with metamagic indicators
+  , spellInd1  :: Word32
+  , spellInd2  :: Word32
+  , spellInd3  :: Word32
+  } deriving (Eq, Show)
+
+setSpellEnum :: Word32 -> Endo SpellData
+setSpellEnum w = Endo \s -> s { spellEnum = w }
+
+setSpellClass :: Word32 -> Endo SpellData
+setSpellClass w = Endo \s -> s { spellClass = w }
+
+setSpellLevel :: Word32 -> Endo SpellData
+setSpellLevel w = Endo \s -> s { spellLevel = w }
+
+setSpellType :: SpellType -> Endo SpellData
+setSpellType t = Endo \s -> s { spellType = t }
+
+setSpellUsed :: Bool -> Endo SpellData
+setSpellUsed b = Endo \s -> s { spellUsed = b }
+
+setSpellMeta :: Metamagic -> Endo SpellData
+setSpellMeta m = Endo \s -> s { spellMeta = m }
+
+setSpellInd1 :: Word32 -> Endo SpellData
+setSpellInd1 w = Endo \s -> s { spellInd1 = w }
+
+setSpellInd2 :: Word32 -> Endo SpellData
+setSpellInd2 w = Endo \s -> s { spellInd2 = w }
+
+setSpellInd3 :: Word32 -> Endo SpellData
+setSpellInd3 w = Endo \s -> s { spellInd3 = w }
+
+instance Defaulted SpellData where
+  defaultVal = Spell 0 0 0 SpellNone False (Mm 0) 0 0 0
 
 data Value
   = W32 !Word32
@@ -282,6 +354,7 @@ data Value
   | StandptArr (Array Standpoint)
   | WayptArr WaypointArr
   | String !ByteString
+  | SpellArr (Array SpellData)
   | Null
   deriving (Eq, Show)
 
@@ -306,6 +379,12 @@ setObjectIdVariant v = Endo \i -> i { variant = v }
 
 setObjectIdUUID :: UUID -> Endo ObjectId
 setObjectIdUUID u = Endo \i -> i { uuid = u }
+
+objectIdToFileName :: ObjectId -> String
+objectIdToFileName (ObjId {..}) = "G_" ++ tweak (toString uuid) where
+  tweak [] = []
+  tweak ('-':cs) = '_' : tweak cs
+  tweak (c:cs) = toUpper c : tweak cs
 
 instance Defaulted ObjectId where
   defaultVal = ObjId 0 nil
@@ -354,6 +433,13 @@ data Mob
   , fields  :: Map ObjectField Value
   } deriving (Eq, Show)
 
+-- A mob diff stores differences from an original mob file. It doesn't appear
+-- that they're able to be interpreted stand-alone. The original object
+-- (identified by UUID) needs to be accessed to determine the object type, and
+-- thus the number of bitmap fields.
+data MobDiff = MobDiff { diffFields :: Map ObjectField Value }
+  deriving (Eq, Show)
+
 setMobInfo :: ObjectInfo -> Endo Mob
 setMobInfo o = Endo \m -> m { objInfo = o }
 
@@ -368,3 +454,7 @@ setMobField f v = Endo \m -> m { fields = insert f v $ fields m }
 
 instance Defaulted Mob where
   defaultVal = Mob  defaultVal defaultVal Portal mempty
+
+-- Object data is saved in slightly different ways in different files. This
+-- type represents those variations in the format.
+data Format = MobFile | DiffFile deriving (Eq, Ord, Show)

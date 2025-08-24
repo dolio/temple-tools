@@ -1,5 +1,5 @@
 
-module Display (displayMob) where
+module Display (displayMob, displayDiff) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Builder
@@ -30,10 +30,18 @@ displayMob condNames (Mob {..})
     , byteString "\n"
   , byteString ", \"mob-type\": \""
     , string8 $ typeName objType
-    , byteString "\"\n"
+    , byteString "\"\n, "
+  , displayFields condNames fields
+  , byteString "\n}\n"
   ]
-  <> displayFields condNames fields
-  <> byteString "}\n"
+
+displayDiff :: Map Word32 ByteString -> MobDiff -> Builder
+displayDiff condNames (MobDiff {..})
+  = mconcat
+  [ byteString "{ "
+  , displayFields condNames diffFields
+  , byteString "\n}\n"
+  ]
 
 displayObjectInfo :: ObjectInfo -> Builder
 displayObjectInfo (ObjInfo {..})
@@ -62,16 +70,15 @@ displayObjectId newline (ObjId {..})
 
 displayFields :: Map Word32 ByteString -> Map ObjectField Value -> Builder
 displayFields condNames =
-  foldMap (uncurry $ displayField condNames) . Map.toList
+  intercalateMap "\n, " (uncurry $ displayField condNames) . Map.toList
 
 displayField :: Map Word32 ByteString -> ObjectField -> Value -> Builder
 displayField condNames fld val
   = mconcat
-  [ byteString ", \""
+  [ byteString "\""
   , string8 $ fieldName fld
   , byteString "\": "
   , displayValue condNames val
-  , byteString "\n"
   ]
 
 displayValue :: Map Word32 ByteString -> Value -> Builder
@@ -81,7 +88,7 @@ displayValue condNames = \case
   W64 w -> string8 $ show w
   I32 i -> string8 $ show i
   F32 f -> string8 $ show f
-  B32 b -> string8 . fmap toLower $ show b
+  B32 b -> displayBool b
   Obj u -> displayObjectId False u
   Loc l -> displayLoc l
   I32Arr is -> displayArray Nothing (string8 . show) is
@@ -91,6 +98,7 @@ displayValue condNames = \case
   CondArr cs -> displayArray (Just 4) (displayCondition condNames) cs
   ScriptArr ss -> displayScriptArray ss
   StandptArr sps -> displayArray (Just 4) displayStandpoint sps
+  SpellArr sps -> displayArray (Just 4) displaySpellData sps
   String s -> char8 '"' <> byteString s <> char8 '"'
   WayptArr (Waypts {..}) ->
     mconcat
@@ -160,6 +168,46 @@ displayStandpoint (Stdpt {..}) =
     ]
   where brk = indent $ Just 6
 
+displaySpellData :: SpellData -> Builder
+displaySpellData (Spell {..}) =
+  mconcat
+    [ byteString "{ \"spell-enum\": "
+    , string8 $ show spellEnum
+    , brk <> byteString ", \"spell-class\": "
+    , string8 $ show spellClass
+    , brk <> byteString ", \"spell-level\": "
+    , string8 $ show spellLevel
+    , brk <> byteString ", \"spell-type\": "
+    , displaySpellType spellType
+    , brk <> byteString ", \"spell-used\": "
+    , displayBool spellUsed
+    , brk <> byteString ", \"metamagic\": "
+    , displayMetamagic spellMeta
+    , brk <> byteString ", \"indicator1\": "
+    , string8 $ show spellInd1
+    , brk <> byteString ", \"indicator2\": "
+    , string8 $ show spellInd2
+    , brk <> byteString ", \"indicator3\": "
+    , string8 $ show spellInd3
+    , brk <> byteString "}"
+    ]
+  where
+  brk = indent $ Just 6
+
+displayMetamagic :: Metamagic -> Builder
+displayMetamagic (Mm w) = string8 $ show w
+
+displaySpellType :: SpellType -> Builder
+displaySpellType = \case
+  SpellNone -> byteString "\"none\""
+  SpellKnown -> byteString "\"known\""
+  SpellMemorized -> byteString "\"memorized\""
+  SpellCast -> byteString "\"cast\""
+  SpellAtWill -> byteString "\"at will\""
+
+displayBool :: Bool -> Builder
+displayBool = string8 . fmap toLower . show
+
 displayWaypoint :: Waypoint -> Builder
 displayWaypoint (Waypt {..}) =
   mconcat
@@ -227,6 +275,9 @@ displayBitmap bs = char8 '"' <> displayBits bs <> char8 '"'
 
 intercalate :: Monoid m => m -> [m] -> m
 intercalate e = mconcat . intersperse e
+
+intercalateMap :: Monoid m => m -> (a -> m) -> [a] -> m
+intercalateMap e f = mconcat . intersperse e . fmap f
 
 indent :: Maybe Int -> Builder
 indent = \case

@@ -1,7 +1,8 @@
 
-module Decode (decodeMob) where
+module Decode (decodeMob, decodeMobs, decodeDiffs) where
 
-import Control.Monad (guard, when, replicateM)
+import Control.Applicative (many, (<|>))
+import Control.Monad (when, replicateM)
 import Data.Binary.Get
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as L
@@ -10,6 +11,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.UUID
 import Data.Word
+import Numeric (showHex)
 
 import Temple.Object.Field
 import Temple.Object.Field.Type
@@ -19,8 +21,19 @@ import Temple.Object.Type
 import Bitmap
 import Mob
 
-getMagic :: Get ()
-getMagic = getWord32le >>= guard . (== 0x77)
+-- This gets a magic number from a file. This is a 32-bit sequence that is
+-- expected to match a specific value. If it doesn't, then an error displaying
+-- the expected vs. actual value occurs.
+getMagic :: Word32 -> Get ()
+getMagic target = do
+  n <- getWord32le
+  if n == target
+  then pure ()
+  else do
+    k <- bytesRead
+    fail $ "unrecognized magic number " ++ mismatch n k
+  where
+  mismatch m k = "0x" ++ showHex m " expected 0x" ++ showHex target " at position 0x" ++ showHex k ""
 
 -- UUIDs in a MOB file seem to be prefixed by 64 bits indicating their
 -- "variant". This is massive overkill, since there are only like 4 variants.
@@ -46,6 +59,8 @@ getObjectId = do
     .|. fromIntegral j `shiftL` 16
     .|. fromIntegral k
 
+-- The object info in a mob file contains a subtype specifier and a prototype
+-- number. The rest seems to be padding.
 getObjectInfo :: Get ObjectInfo
 getObjectInfo = do
   subtype <- getWord16le
@@ -66,14 +81,26 @@ type2bits ty
 
 getMob :: Get Mob
 getMob = do
-  getMagic
-  objInfo <- isolate 24 $ getObjectInfo
-  objId <- isolate 24 $ getObjectId
+  getMagic 0x77
+  objInfo <- getObjectInfo
+  objId <- isolate 24 getObjectId
   objType <- getObjectType
-  fields <- getFields objType
-  isEmpty >>= \b -> when (not b) $
-    fail "extra bytes at end"
+  fields <- getFields MobFile objType
   pure $ Mob {..}
+
+getMobDiff :: Mob -> Get MobDiff
+getMobDiff mob = do
+  getMagic 0x77
+  getMagic 0x12344321
+  oid <- getObjectId
+  when (oid /= objId mob) $
+    fail $ "diff object id did not match mob: " ++ toString (uuid oid)
+  MobDiff <$> getFields DiffFile (objType mob) <* getMagic 0x23455432
+
+checkEOF :: Get ()
+checkEOF = isEmpty >>= \b -> when (not b) do
+  n <- bytesRead
+  fail $ "extra bytes at position " ++ show n
 
 getObjectType :: Get ObjectType
 getObjectType = getWord32le >>= \case
@@ -107,8 +134,9 @@ getFieldValue name = \case
   AbilityArrF -> shortCircuit Null $ I32Arr <$> getArray name 4 getInt32le
   StandptArrF -> shortCircuit Null $ StandptArr <$> getStandpointArray
   WayptArrF   -> shortCircuit Null $ WayptArr <$> getWaypointArray
+  SpellArrF   -> shortCircuit Null $ SpellArr <$> getArray name 32 getSpellData
   StringF     -> shortCircuit Null $ String <$> getString
-  ty          -> fail $ "unsupported field type: " ++ show ty
+  ty          -> fail $ "unsupported field type: " ++ name ++ " : " ++ show ty
 
 getScriptArray :: Get (Map ObjectScript Script)
 getScriptArray = do
@@ -188,6 +216,35 @@ getArrayBitmap = do
 getScriptInfo :: Get Script
 getScriptInfo = Script <$> getWord32le <*> getWord32le <*> getWord32le
 
+getSpellData :: Get SpellData
+getSpellData = do
+  spellEnum <- getWord32le
+  spellClass <- getWord32le
+  spellLevel <- getWord32le
+  spellType <- getSpellType
+  spellUsed <- (/= 0) <$> getWord8
+  skip 2 -- padding
+  spellMeta <- getMetaMagic
+  -- these are apparently actual fields, but I don't know what the information
+  -- in them actually means
+  spellInd1 <- getWord32le
+  spellInd2 <- getWord32le
+  spellInd3 <- getWord32le
+  pure $ Spell {..}
+
+getSpellType :: Get SpellType
+getSpellType = getWord8 >>= \case
+  0 -> pure SpellNone
+  1 -> pure SpellKnown
+  2 -> pure SpellMemorized
+  3 -> pure SpellCast
+  4 -> pure SpellAtWill
+  n -> fail $ "unrecognized spell type: " ++ show n
+
+-- Only the 3 bytes are relevant, the last is padding
+getMetaMagic :: Get Metamagic
+getMetaMagic = Mm . (.&. 0xffffff) <$> getWord32le
+
 getStandpoint :: Get Standpoint
 getStandpoint = do
   sp <- Stdpt <$> getWord64le <*> getLoc <*> getOffsets <*> getWord64le
@@ -210,19 +267,42 @@ getOffsets :: Get Offsets
 getOffsets = Off <$> getFloatle <*> getFloatle
 
 -- Reads the main section of a mob, containing its fields.
-getFields :: ObjectType -> Get (Map ObjectField Value)
-getFields objType = do
+getFields :: Format -> ObjectType -> Get (Map ObjectField Value)
+getFields MobFile objType = do
   numProps <- getWord16le
   bitmap <- getBitmap $ type2bits objType
   when (fromIntegral numProps /= countSet bitmap)
     (fail "validation failed: numProps does not match actual bits set")
+  Map.fromList <$> traverse getField (setFields (GeneralF Location) bitmap)
+getFields DiffFile objType = do
+  bitmap <- getBitmap $ type2bits objType
   Map.fromList <$> traverse getField (setFields (GeneralF Location) bitmap)
 
 -- Supported fields for a mob file
 getField :: ObjectField -> Get (ObjectField, Value)
 getField fl = (,) fl <$> getFieldValue (fieldName fl) (fieldType fl)
 
+runGetEither :: Get a -> L.ByteString -> Either String a
+runGetEither get bs = case runGetOrFail get bs of
+  Left  (_, _, message) -> Left message
+  Right (_, _,  result) -> Right result
+
 decodeMob :: L.ByteString -> Either String Mob
-decodeMob bs = case runGetOrFail getMob bs of
-  Left (_, _, msg) -> Left msg
-  Right (_, _, mob) -> Right mob
+decodeMob = runGetEither $ getMob <* checkEOF
+
+decodeMobs :: L.ByteString -> Either String [Mob]
+decodeMobs = runGetEither $ many getMob <* checkEOF
+
+decodeDiffs
+  :: Map UUID Mob -> L.ByteString -> Either String [(ObjectId, MobDiff)]
+decodeDiffs mobs = runGetEither $ getItems [] <* checkEOF
+  where
+  tryGetId = Just <$> getObjectId <|> pure Nothing
+  getItems acc = tryGetId >>= \case
+    Nothing -> pure $ reverse acc
+    Just oid -> case Map.lookup (uuid oid) mobs of
+      Just mob -> do
+        p <- (,) oid <$> getMobDiff mob
+        getItems (p:acc)
+      Nothing -> fail $ "could not find mob: " ++ name
+        where name = objectIdToFileName oid

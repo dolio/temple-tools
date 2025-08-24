@@ -1,13 +1,16 @@
 module Main (main) where
 
 import Control.Monad (when)
-import Data.ByteString.Lazy as L
+import Data.ByteString.Char8 qualified as B
+import Data.ByteString.Lazy qualified as L
 import Data.ByteString.Builder qualified as Bu
-import Data.Char (toUpper)
+import Data.Char (toLower)
+import Data.Foldable (for_)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (fromMaybe)
-import Data.UUID (toString)
+import Data.Maybe (fromMaybe, mapMaybe)
+import Data.UUID (UUID)
 import Data.Word
+import System.Directory
 import System.IO as IO
 import System.Exit
 import System.FilePath
@@ -37,6 +40,15 @@ data Action
     { aopts :: AnalyzeOpts
     , mobIn :: FilePath
     }
+  | Mdy2Mobs
+    { saveIn :: FilePath
+    , dirOut :: FilePath
+    }
+  | Md2Json
+    { mapDir :: Maybe FilePath
+    , saveIn :: FilePath
+    , dirOut :: FilePath
+    }
   | Json2Mob
     { _mmobOut :: Maybe FilePath
     , _jsonIn  :: FilePath
@@ -48,13 +60,26 @@ data AnalyzeOpts
   , reportSuccess :: Bool
   , unknownConds  :: Bool
   , searchProto   :: Maybe Word32
+  , searchCond    :: [String]
   }
 
 inputArg :: Parser FilePath
-inputArg = strArgument $ metavar "INPUT_FILE"
+inputArg
+  = strArgument
+  $ metavar "INPUT_FILE"
+ <> action "file"
 
 outputArg :: Parser FilePath
-outputArg = strArgument $ metavar "OUPUT_FILE"
+outputArg
+  = strArgument
+  $ metavar "OUPUT_FILE"
+ <> action "file"
+
+outputDirArg :: Parser FilePath
+outputDirArg
+  = strArgument
+  $ metavar "OUTPUT_DIRECTORY"
+ <> action "directory"
 
 outputOpt :: Parser (Maybe FilePath)
 outputOpt = option (maybeReader $ Just . Just)
@@ -63,6 +88,15 @@ outputOpt = option (maybeReader $ Just . Just)
          <> metavar "FILE"
          <> help "Output file"
          <> value Nothing
+         <> action "file"
+
+mapDirOpt :: Parser (Maybe FilePath)
+mapDirOpt = option (maybeReader $ Just . Just)
+          $ long "map-dir"
+         <> metavar "DIR"
+         <> help "location of .mob files"
+         <> value Nothing
+         <> action "directory"
 
 mob2json :: Mod CommandFields Action
 mob2json = command "mob-to-json" $ info cmd desc where
@@ -79,8 +113,19 @@ json2mob = command "json-to-mob" $ info cmd desc where
   cmd = Json2Mob <$> outputOpt <*> inputArg
   desc = progDesc "Turn JSON bac into a MOB file"
 
+mdy2mobs :: Mod CommandFields Action
+mdy2mobs = command "mdy-to-mobs" $ info cmd desc where
+  cmd = Mdy2Mobs <$> inputArg <*> outputDirArg
+  desc = progDesc "Turn a mobile.mdy into individual mobs"
+
+md2json :: Mod CommandFields Action
+md2json = command "md-to-json" $ info cmd desc where
+  cmd = Md2Json <$> mapDirOpt <*> inputArg <*> outputDirArg
+  desc = progDesc "Turn a mobile.md into readable files"
+
 analyzeOpts :: Parser AnalyzeOpts
-analyzeOpts = AO <$> failure <*> success <*> unknown <*> proto where
+analyzeOpts = AO <$> failure <*> success <*> unknown <*> proto <*> many cond
+  where
   failure = switch $ long "quiet-failure" <> short 'F'
   success = switch $ long "report-success" <> short 's'
   unknown = switch
@@ -92,6 +137,10 @@ analyzeOpts = AO <$> failure <*> success <*> unknown <*> proto where
        <> metavar "PROTO_ID"
        <> help "Print if prototype id matches"
        <> value Nothing
+  cond = strOption
+       $ long "has-condition"
+      <> short 'c'
+      <> help "Print if mob has the condition"
 
 analyzeMob :: Mod CommandFields Action
 analyzeMob = command "analyze-mob" $ info cmd desc where
@@ -100,7 +149,13 @@ analyzeMob = command "analyze-mob" $ info cmd desc where
 
 acts :: ParserInfo Action
 acts = info (subs <**> helper) desc where
-  subs = hsubparser $ mob2json <> mob2mob <> json2mob <> analyzeMob
+  subs = hsubparser
+       $ mob2json
+      <> mob2mob
+      <> json2mob
+      <> analyzeMob
+      <> mdy2mobs
+      <> md2json
   desc = progDesc "manipulate various ToEE MOB representations"
 
 main :: IO ()
@@ -122,6 +177,22 @@ main = customExecParser p acts >>= \case
     decodeMobOrFail (quietFailure aopts) mobIn >>=
       performAnalysis mobIn aopts
     exitWith ExitSuccess
+  Mdy2Mobs {..} -> decodeMobsOrFail saveIn >>= \idms -> do
+    createDirectoryIfMissing True dirOut
+    withCurrentDirectory dirOut $
+      for_ idms \mob ->
+        L.writeFile (objectIdToFileName (objId mob) <.> "mob") $ encodeMob mob
+  Md2Json {..} -> do
+    mobs <- loadMobsFromDirectory mobLoc
+    diffs <- decodeDiffsOrFail mobs saveIn
+    createDirectoryIfMissing True dirOut
+    condNames <- readConditionFile
+    withCurrentDirectory dirOut $
+      for_ diffs \(obId, diff) ->
+        Bu.writeFile (objectIdToFileName obId <.> "json") $
+          displayDiff condNames diff
+    where
+    mobLoc = fromMaybe (dropFileName saveIn) mapDir
   where
   p = prefs showHelpOnEmpty
 
@@ -136,15 +207,16 @@ performAnalysis fname (AO {..}) mob = do
     IO.putStr fname
     putStrLn " OK"
 
+  when (not $ null searchCond) $
+    let match = testConds searchCond mob
+     in when (not $ null match) do
+          IO.putStr fname
+          IO.putStr " condition(s) matched: "
+          print match
+
   when unknownConds do
     condNames <- readConditionFile
-    let flds = fields mob
-        f (CondArr cs) = pure cs
-        f _ = Nothing
-        extr = maybe [] content . (f =<<)
-        conds = extr $ Map.lookup (GeneralF Conditions) flds
-        mods = extr $ Map.lookup (GeneralF PermanentMods) flds
-        unk = Prelude.filter (`Map.notMember` condNames) (conds ++ mods)
+    let unk = Prelude.filter (`Map.notMember` condNames) (getConditions mob)
     when (not $ Prelude.null unk) do
       IO.hPutStr stderr fname
       IO.hPutStr stderr ": unknown conditions: "
@@ -157,16 +229,28 @@ performAnalysis fname (AO {..}) mob = do
       IO.putStr " protoId = "
       print . protoId $ objInfo mob
 
+getConditions :: Mob -> [Word32]
+getConditions (Mob {..})
+  = extract (Map.lookup (GeneralF Conditions) fields)
+ <> extract (Map.lookup (GeneralF PermanentMods) fields)
+  where
+  f (CondArr cs) = pure cs
+  f _ = Nothing
+
+  extract = maybe [] content . (f =<<)
+
+testConds :: [String] -> Mob -> [B.ByteString]
+testConds cns = mapMaybe (`Map.lookup` needles) . getConditions
+  where
+  f name = (elfHash name, name)
+  needles = Map.fromList $ f . B.pack <$> cns
+
 checkUUID :: FilePath -> ObjectId -> Bool
 checkUUID file vuuid = expectedUUIDString file == uuidStr
   where
   expectedUUIDString = dropExtensions . takeFileName
 
-  uuidStr = ("G_" ++) . tweak . toString $ uuid vuuid
-
-  tweak [] = []
-  tweak ('-':cs) = '_' : tweak cs
-  tweak (c:cs) = toUpper c : tweak cs
+  uuidStr = objectIdToFileName vuuid
 
 decodeMobOrFail :: Bool -> FilePath -> IO Mob
 decodeMobOrFail quietFailure file =
@@ -179,6 +263,36 @@ decodeMobOrFail quietFailure file =
           hPutStrLn stderr err
         exitWith $ ExitFailure 1
       Right mob -> pure mob
+
+decodeMobsOrFail :: FilePath -> IO [Mob]
+decodeMobsOrFail file =
+  L.readFile file >>= \bs ->
+    case decodeMobs bs of
+      Left err -> do
+        IO.hPutStr stderr file
+        IO.hPutStr stderr ": "
+        hPutStrLn stderr err
+        exitWith $ ExitFailure 1
+      Right mobs -> pure mobs
+
+loadMobsFromDirectory :: FilePath -> IO (Map.Map UUID Mob)
+loadMobsFromDirectory loc = do
+  files <- filter ext <$> listDirectory loc
+  mobs <- traverse (decodeMobOrFail False . (loc </>)) files
+  pure . Map.fromList $ withId <$> mobs
+  where
+  ext fn = ".mob" == fmap toLower (takeExtension fn)
+  withId mob = (uuid $ objId mob, mob)
+
+decodeDiffsOrFail :: Map.Map UUID Mob -> FilePath -> IO [(ObjectId, MobDiff)]
+decodeDiffsOrFail mobs saveIn =
+  L.readFile saveIn >>= \bs ->
+    case decodeDiffs mobs bs of
+      Left err -> do
+        IO.hPutStr stderr "could not read diff file: "
+        hPutStrLn stderr err
+        exitWith $ ExitFailure 1
+      Right diffs -> pure diffs
 
 parseJsonOrFail :: FilePath -> IO Mob
 parseJsonOrFail file =
