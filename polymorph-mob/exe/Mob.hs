@@ -460,11 +460,16 @@ instance Defaulted Mob where
 -- actual character data.
 data Player
   = Player
-  { pcFlags  :: Word32
-  , pcId     :: ObjectId
-  , pcName   :: ByteString
-  , portrait :: ObjectId
-  , pcData   :: Mob
+  { pcFlags    :: Word32
+  , pcId       :: ObjectId
+  , pcName     :: ByteString
+  , pcPortrait :: Word32
+  , pcGender   :: Word32
+  , pcClass    :: Word32
+  , pcRace     :: Word32
+  , pcAlign    :: Word32
+  , pcHp       :: Word32
+  , pcData     :: Mob
   }
 
 -- Object data is saved in slightly different ways in different files. This

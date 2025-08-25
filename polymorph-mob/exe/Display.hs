@@ -60,7 +60,22 @@ displayPlayer condNames (Player { pcData = Mob {..}, ..})
     , char8 '"' <> byteString pcName <> char8 '"'
     , char8 '\n'
   , byteString ", \"portrait-id\": "
-    , displayObjectId True portrait
+    , string8 $ show pcPortrait
+    , char8 '\n'
+  , byteString ", \"gender\": "
+    , displayGender pcGender
+    , char8 '\n'
+  , byteString ", \"class\": "
+    , string8 $ show pcClass
+    , char8 '\n'
+  , byteString ", \"race\": "
+    , string8 $ show pcRace
+    , char8 '\n'
+  , byteString ", \"alignment\": "
+    , displayAlignment pcAlign
+    , char8 '\n'
+  , byteString ", \"hp\": "
+    , string8 $ show pcHp
     , char8 '\n'
   , byteString ", \"mob-info\":\n"
     , displayObjectInfo objInfo
@@ -74,6 +89,25 @@ displayPlayer condNames (Player { pcData = Mob {..}, ..})
   , displayFields condNames fields
   , byteString "\n}\n"
   ]
+
+displayGender :: Word32 -> Builder
+displayGender = \case
+  0 -> byteString "\"female\""
+  1 -> byteString "\"male\""
+  n -> string8 $ show n
+
+displayAlignment :: Word32 -> Builder
+displayAlignment = \case
+  0 -> byteString "\"neutral\""
+  1 -> byteString "\"lawful neutral\""
+  2 -> byteString "\"chaotic neutral\""
+  4 -> byteString "\"neutral good\""
+  5 -> byteString "\"lawful good\""
+  6 -> byteString "\"chaotic good\""
+  8 -> byteString "\"neutral evil\""
+  9 -> byteString "\"lawful evil\""
+  10 -> byteString "\"chaotic evil\""
+  n -> string8 $ show n
 
 displayObjectInfo :: ObjectInfo -> Builder
 displayObjectInfo (ObjInfo {..})

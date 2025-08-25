@@ -109,7 +109,12 @@ getPlayer = do
   pcId <- getObjectId
   nameLength <- getWord32le
   pcName <- getByteString $ fromIntegral nameLength
-  portrait <- getObjectId
+  pcPortrait <- getWord32le
+  pcGender <- getWord32le
+  pcClass <- getWord32le
+  pcRace <- getWord32le
+  pcAlign <- getWord32le
+  pcHp <- getWord32le
   pcData <- isolate (fromIntegral dataSize) $ getMob
   pure $ Player {..}
 
