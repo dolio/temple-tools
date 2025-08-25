@@ -65,6 +65,35 @@ also be relatively flexible with regard to the exact layout.
 Like `mob-to-mob`, the result may not be identical to the original MOB file,
 because garbage values will be replaced with zeroes.
 
+### mdy-to-mobs
+
+This handles a dynamic mob file from a saved game, usually `mobile.mdy`. This
+is just a sequence of mobs packed into a single file.
+
+The command takes an input file and an output directory, and creates
+individual `.mob` files in the directory corresponding to the embedded
+objects.
+
+
+### md-to-json
+
+This handles a mob diff file from a saved game, usuall `mobile.md`. This file
+stores additional differences relative to the objects' .mob files.
+
+The `.md` file does not contain enough information to be decoded stand-alone,
+so a directory with `.mob` files for all the objects mentioned in the `.md`
+file _must_ be provided.
+
+By default, it is assumed that the same directory as the `.md` file contains
+all the `.mob` files, but this unlikely assumption can be overridden with
+`--map-dir` (named because the location of these `.mob` files are the
+directories aggregating map assets). They are usually stored under the
+`modules` directory of the ToEE install, possibly in a `.dat` file.
+
+The output will be several `.json` files in the specified output directory.
+These will be named by the UUID of the objects they modify, but will contain
+only the differences from the original file.
+
 ## Conditions
 
 Conditions are stored in MOB files according to their ELF hash, which is a
