@@ -1,5 +1,10 @@
 
-module Decode (decodeMob, decodeMobs, decodeDiffs) where
+module Decode
+  ( decodeMob
+  , decodeMobs
+  , decodeDiffs
+  , decodePlayer
+  ) where
 
 import Control.Applicative ((<|>))
 import Control.Monad (when, replicateM)
@@ -96,6 +101,17 @@ getMobDiff mob = do
   when (oid /= objId mob) $
     fail $ "diff object id did not match mob: " ++ toString (uuid oid)
   MobDiff <$> getFields DiffFile (objType mob) <* getMagic 0x23455432
+
+getPlayer :: Get Player
+getPlayer = do
+  pcFlags <- getWord32le
+  dataSize <- getWord32le
+  pcId <- getObjectId
+  nameLength <- getWord32le
+  pcName <- getByteString $ fromIntegral nameLength
+  portrait <- getObjectId
+  pcData <- isolate (fromIntegral dataSize) $ getMob
+  pure $ Player {..}
 
 checkEOF :: Get ()
 checkEOF = isEmpty >>= \b -> when (not b) do
@@ -309,3 +325,6 @@ decodeDiffs mobs = runGetEither $ getItems [] <* checkEOF
         getItems (p:acc)
       Nothing -> fail $ "could not find mob: " ++ name
         where name = objectIdToFileName oid
+
+decodePlayer :: L.ByteString -> Either String Player
+decodePlayer = runGetEither $ getPlayer <* checkEOF

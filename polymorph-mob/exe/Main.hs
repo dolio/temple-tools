@@ -53,6 +53,10 @@ data Action
     { _mmobOut :: Maybe FilePath
     , _jsonIn  :: FilePath
     }
+  | Player2Json
+    { jsonOut :: Maybe FilePath
+    , pcIn    :: FilePath
+    }
 
 data AnalyzeOpts
   = AO
@@ -123,6 +127,11 @@ md2json = command "md-to-json" $ info cmd desc where
   cmd = Md2Json <$> mapDirOpt <*> inputArg <*> outputDirArg
   desc = progDesc "Turn a mobile.md into readable files"
 
+player2json :: Mod CommandFields Action
+player2json = command "player-to-json" $ info cmd desc where
+  cmd = Player2Json <$> outputOpt <*> inputArg
+  desc = progDesc "Turn a .ToEEPC file into a readable format"
+
 analyzeOpts :: Parser AnalyzeOpts
 analyzeOpts = AO <$> failure <*> success <*> unknown <*> proto <*> many cond
   where
@@ -156,6 +165,7 @@ acts = info (subs <**> helper) desc where
       <> analyzeMob
       <> mdy2mobs
       <> md2json
+      <> player2json
   desc = progDesc "manipulate various ToEE MOB representations"
 
 main :: IO ()
@@ -193,6 +203,12 @@ main = customExecParser p acts >>= \case
           displayDiff condNames diff
     where
     mobLoc = fromMaybe (dropFileName saveIn) mapDir
+  Player2Json {..} -> do
+    plr <- decodePlayerOrFail pcIn
+    condNames <- readConditionFile
+    Bu.writeFile out $ displayPlayer condNames plr
+    where
+    out = fromMaybe (pcIn <.> "json") jsonOut
   where
   p = prefs showHelpOnEmpty
 
@@ -252,28 +268,23 @@ checkUUID file vuuid = expectedUUIDString file == uuidStr
 
   uuidStr = objectIdToFileName vuuid
 
-decodeMobOrFail :: Bool -> FilePath -> IO Mob
-decodeMobOrFail quietFailure file =
+decodeOrFail :: (L.ByteString -> Either String a) -> Bool -> FilePath -> IO a
+decodeOrFail decode quiet file =
   L.readFile file >>= \bs ->
-    case decodeMob bs of
+    case decode bs of
       Left err -> do
-        when (not quietFailure) do
+        when (not quiet) do
           IO.hPutStr stderr file
           IO.hPutStr stderr ": "
           hPutStrLn stderr err
         exitWith $ ExitFailure 1
-      Right mob -> pure mob
+      Right result -> pure result
+
+decodeMobOrFail :: Bool -> FilePath -> IO Mob
+decodeMobOrFail = decodeOrFail decodeMob
 
 decodeMobsOrFail :: FilePath -> IO [Mob]
-decodeMobsOrFail file =
-  L.readFile file >>= \bs ->
-    case decodeMobs bs of
-      Left err -> do
-        IO.hPutStr stderr file
-        IO.hPutStr stderr ": "
-        hPutStrLn stderr err
-        exitWith $ ExitFailure 1
-      Right mobs -> pure mobs
+decodeMobsOrFail = decodeOrFail decodeMobs False
 
 loadMobsFromDirectory :: FilePath -> IO (Map.Map UUID Mob)
 loadMobsFromDirectory loc = do
@@ -285,22 +296,10 @@ loadMobsFromDirectory loc = do
   withId mob = (uuid $ objId mob, mob)
 
 decodeDiffsOrFail :: Map.Map UUID Mob -> FilePath -> IO [(ObjectId, MobDiff)]
-decodeDiffsOrFail mobs saveIn =
-  L.readFile saveIn >>= \bs ->
-    case decodeDiffs mobs bs of
-      Left err -> do
-        IO.hPutStr stderr "could not read diff file: "
-        hPutStrLn stderr err
-        exitWith $ ExitFailure 1
-      Right diffs -> pure diffs
+decodeDiffsOrFail mobs = decodeOrFail (decodeDiffs mobs) False
 
 parseJsonOrFail :: FilePath -> IO Mob
-parseJsonOrFail file =
-  L.readFile file >>= \bs ->
-    case readMob file bs of
-      Left err -> do
-        IO.hPutStr stderr file
-        IO.hPutStr stderr ": "
-        hPutStrLn stderr err
-        exitWith $ ExitFailure 1
-      Right mob -> pure mob
+parseJsonOrFail file = decodeOrFail (readMob file) False file
+
+decodePlayerOrFail :: FilePath -> IO Player
+decodePlayerOrFail = decodeOrFail decodePlayer False

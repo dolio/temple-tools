@@ -1,5 +1,9 @@
 
-module Display (displayMob, displayDiff) where
+module Display
+  ( displayMob
+  , displayDiff
+  , displayPlayer
+  ) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Builder
@@ -40,6 +44,34 @@ displayDiff condNames (MobDiff {..})
   = mconcat
   [ byteString "{ "
   , displayFields condNames diffFields
+  , byteString "\n}\n"
+  ]
+
+displayPlayer :: Map Word32 ByteString -> Player -> Builder
+displayPlayer condNames (Player { pcData = Mob {..}, ..})
+  = mconcat
+  [ byteString "{ \"pc-flags\": 0x"
+    , string8 $ showHex pcFlags ""
+    , char8 '\n'
+  , byteString ", \"pc-id\": "
+    , displayObjectId True pcId
+    , char8 '\n'
+  , byteString ", \"name\": "
+    , char8 '"' <> byteString pcName <> char8 '"'
+    , char8 '\n'
+  , byteString ", \"portrait-id\": "
+    , displayObjectId True portrait
+    , char8 '\n'
+  , byteString ", \"mob-info\":\n"
+    , displayObjectInfo objInfo
+    , char8 '\n'
+  , byteString ", \"mob-id\": "
+    , displayObjectId True objId
+    , char8 '\n'
+  , byteString ", \"mob-type\": \""
+    , string8 $ typeName objType
+    , byteString "\"\n, "
+  , displayFields condNames fields
   , byteString "\n}\n"
   ]
 

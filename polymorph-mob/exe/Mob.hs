@@ -17,6 +17,7 @@ module Mob
   , setMobType
   , setMobField
   , MobDiff (..)
+  , Player (..)
   , ObjectId (..)
   , setObjectIdVariant
   , setObjectIdUUID
@@ -454,6 +455,17 @@ setMobField f v = Endo \m -> m { fields = insert f v $ fields m }
 
 instance Defaulted Mob where
   defaultVal = Mob  defaultVal defaultVal Portal mempty
+
+-- A created character is some extra info wrapped around a Mob containing the
+-- actual character data.
+data Player
+  = Player
+  { pcFlags  :: Word32
+  , pcId     :: ObjectId
+  , pcName   :: ByteString
+  , portrait :: ObjectId
+  , pcData   :: Mob
+  }
 
 -- Object data is saved in slightly different ways in different files. This
 -- type represents those variations in the format.
