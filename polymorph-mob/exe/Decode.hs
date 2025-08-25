@@ -1,7 +1,7 @@
 
 module Decode (decodeMob, decodeMobs, decodeDiffs) where
 
-import Control.Applicative (many, (<|>))
+import Control.Applicative ((<|>))
 import Control.Monad (when, replicateM)
 import Data.Binary.Get
 import Data.ByteString qualified as BS
@@ -290,8 +290,11 @@ runGetEither get bs = case runGetOrFail get bs of
 decodeMob :: L.ByteString -> Either String Mob
 decodeMob = runGetEither $ getMob <* checkEOF
 
+untilEOF :: Get a -> Get [a]
+untilEOF p = [] <$ checkEOF <|> (:) <$> p <*> untilEOF p
+
 decodeMobs :: L.ByteString -> Either String [Mob]
-decodeMobs = runGetEither $ many getMob <* checkEOF
+decodeMobs = runGetEither $ untilEOF getMob
 
 decodeDiffs
   :: Map UUID Mob -> L.ByteString -> Either String [(ObjectId, MobDiff)]
