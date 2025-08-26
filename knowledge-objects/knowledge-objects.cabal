@@ -9,7 +9,6 @@ maintainer: dan.doel@gmail.com
 copyright: 2025
 category: Game
 build-type: Simple
-extra-doc-files: CHANGELOG.md
 
 common warnings
   ghc-options:
