@@ -94,6 +94,12 @@ The output will be several `.json` files in the specified output directory.
 These will be named by the UUID of the objects they modify, but will contain
 only the differences from the original file.
 
+### player-to-json
+
+This handles created character files, either `.ToEEPC` or `.ToEEIMan`. These
+contain mob data for the character with some extra player character
+information. The full set of information is output to the JSON file.
+
 ## Conditions
 
 Conditions are stored in MOB files according to their ELF hash, which is a
