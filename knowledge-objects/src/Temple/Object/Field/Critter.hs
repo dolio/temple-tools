@@ -279,7 +279,7 @@ critterFieldType = \case
   CritterTeleportDest -> LocF
   CritterTeleportMap -> W32F
   CritterDeathTime -> W32F
-  CritterSkillIdx -> W32ArrF
+  CritterSkillIdx -> SkillArrF
   CritterReach -> W32F
   CritterSubdualDamage -> W32F
   CritterPadInt4 -> W32F

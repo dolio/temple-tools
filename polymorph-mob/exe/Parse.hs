@@ -16,6 +16,7 @@ import Text.Megaparsec.Byte.Lexer qualified as Lex
 import Temple.Object.Field
 import Temple.Object.Field.Type
 import Temple.Object.Script
+import Temple.Object.Skill
 import Temple.Object.Type
 
 import Condition
@@ -141,6 +142,7 @@ parseValueByType = \case
   ScriptArrF -> ScriptArr <$> parseScriptArr
   WayptArrF -> WayptArr <$> parseWaypointArr
   StandptArrF -> StandptArr . Dense <$> parseArr parseStandpoint
+  SkillArrF -> SkillArr <$> parseSkillArr
   ft -> fail $ "unsupported field type: " ++ show ft
   where
   bool = (False <$ lexeme (chunk "false")) <|> (True <$ lexeme (chunk "true"))
@@ -174,6 +176,11 @@ parseScriptArr :: Parser (Map ObjectScript Script)
 parseScriptArr =
   Map.fromList <$>
     parseJsonObject parseScriptName (\k -> (,) k <$> parseScript)
+
+parseSkillArr :: Parser (Map Skill Word32)
+parseSkillArr =
+  Map.fromList <$>
+    parseJsonObject parseSkillName (\k -> (,) k <$> parseInteger)
 
 parseWaypoint :: Parser Waypoint
 parseWaypoint = finalize <$> parseJsonObject field \case

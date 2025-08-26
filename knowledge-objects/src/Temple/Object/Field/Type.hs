@@ -27,5 +27,6 @@ data FieldType
   | AbilityArrF -- array of ability scores
   | ScriptArrF  -- array of scripts (numbers, probably)
   | SpellArrF   -- array of spell entries
+  | SkillArrF   -- array of skills
   deriving (Eq, Ord, Show)
 

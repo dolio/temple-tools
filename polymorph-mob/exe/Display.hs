@@ -18,10 +18,14 @@ import Numeric (showHex)
 
 import Temple.Object.Field
 import Temple.Object.Script
+import Temple.Object.Skill
 import Temple.Object.Type
 
 import Bitmap
 import Mob
+
+quoted :: Builder -> Builder
+quoted b = char8 '"' <> b <> char8 '"'
 
 displayMob :: Map Word32 ByteString -> Mob -> Builder
 displayMob condNames (Mob {..})
@@ -165,6 +169,7 @@ displayValue condNames = \case
   ScriptArr ss -> displayScriptArray ss
   StandptArr sps -> displayArray (Just 4) displayStandpoint sps
   SpellArr sps -> displayArray (Just 4) displaySpellData sps
+  SkillArr sks -> displaySkillArray sks
   String s -> char8 '"' <> byteString s <> char8 '"'
   WayptArr (Waypts {..}) ->
     mconcat
@@ -335,6 +340,22 @@ displayScriptArray ss
      , byteString "\": "
      , displayScript scr
      ]
+
+displaySkillArray :: Map Skill Word32 -> Builder
+displaySkillArray (Map.toList -> sks)
+  = brk <> byteString "{ "
+ <> intercalateMap comma f sks
+ <> brk <> byteString "}"
+  where
+  brk = indent $ Just 4
+  comma = brk <> byteString ", "
+
+  f (sk, n) =
+    mconcat
+      [ quoted . byteString $ skillName sk
+      , byteString ": "
+      , string8 $ show n
+      ]
 
 displayBitmap :: Bitmap -> Builder
 displayBitmap bs = char8 '"' <> displayBits bs <> char8 '"'

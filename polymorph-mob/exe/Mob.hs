@@ -75,6 +75,7 @@ import Bitmap
 
 import Temple.Object.Field
 import Temple.Object.Script
+import Temple.Object.Skill
 import Temple.Object.Type
 
 class Defaulted t where defaultVal :: t
@@ -353,6 +354,7 @@ data Value
   | ObjArr (Array ObjectId)
   | ScriptArr (Map ObjectScript Script)
   | StandptArr (Array Standpoint)
+  | SkillArr (Map Skill Word32)
   | WayptArr WaypointArr
   | String !ByteString
   | SpellArr (Array SpellData)

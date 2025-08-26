@@ -12,6 +12,7 @@ import Data.Binary.Get
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as L
 import Data.Bits
+import Data.Functor ((<&>))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.UUID
@@ -21,6 +22,7 @@ import Numeric (showHex)
 import Temple.Object.Field
 import Temple.Object.Field.Type
 import Temple.Object.Script
+import Temple.Object.Skill
 import Temple.Object.Type
 
 import Bitmap
@@ -156,6 +158,7 @@ getFieldValue name = \case
   StandptArrF -> shortCircuit Null $ StandptArr <$> getStandpointArray
   WayptArrF   -> shortCircuit Null $ WayptArr <$> getWaypointArray
   SpellArrF   -> shortCircuit Null $ SpellArr <$> getArray name 32 getSpellData
+  SkillArrF   -> SkillArr <$> shortCircuit Map.empty (getSkillArray name)
   StringF     -> shortCircuit Null $ String <$> getString
   ty          -> fail $ "unsupported field type: " ++ name ++ " : " ++ show ty
 
@@ -174,6 +177,11 @@ getScriptArray = do
         pure . Map.fromList $ zip (setFields minBound bm) scs
       | otherwise ->
         fail "bitmap for script array doesn't match number of scripts"
+
+getSkillArray :: String -> Get (Map Skill Word32)
+getSkillArray name = getArray name 4 getWord32le <&> \case
+  Dense ns -> Map.fromList $ zip [Appraise ..] ns
+  Sparse ns bm -> Map.fromList $ zip (setFields Appraise bm) ns
 
 getArray :: String -> Word32 -> Get a -> Get (Array a)
 getArray name exSize elem = do

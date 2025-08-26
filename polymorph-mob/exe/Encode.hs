@@ -19,6 +19,7 @@ import Mob
 import Temple.Object.Field
 import Temple.Object.Field.Type
 import Temple.Object.Script
+import Temple.Object.Skill
 import Temple.Object.Type
 
 -- magic version number
@@ -116,6 +117,7 @@ putFieldByType name = \cases
   WayptArrF   (WayptArr wps)   -> putWaypointArray wps
   AbilityArrF (I32Arr is)      -> putArray 4 putInt32le is
   ScriptArrF  (ScriptArr ss)   -> putScriptArray ss
+  SkillArrF   (SkillArr sks)   -> putSkillArray sks
 
   _           vl ->
     error $ "bad value for " <> name <> ": " ++ show vl
@@ -201,6 +203,17 @@ putScriptArray m
     putWord32le . fromIntegral $ Map.size m
     putWord32le 0 -- dummy bitmap index
     traverse_ putScript $ Map.elems m
+    putArrayBitmap . fromFields minBound 6 $ Map.keysSet m
+
+putSkillArray :: Map Skill Word32 -> Put
+putSkillArray m
+  | Map.null m = putWord8 0
+  | otherwise = do
+    putWord8 1 -- no short circuit
+    putWord32le 4 -- 4 byte words
+    putWord32le . fromIntegral $ Map.size m
+    putWord32le 0 -- dummy bitmap index
+    traverse_ putWord32le $ Map.elems m
     putArrayBitmap . fromFields minBound 6 $ Map.keysSet m
 
 putLoc :: Loc -> Put
