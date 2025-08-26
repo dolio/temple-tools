@@ -45,6 +45,7 @@ library
     Temple.Object.Field.Type
 
     Temple.Object.Script
+    Temple.Object.Skill
     Temple.Object.Type
 
   build-depends:
