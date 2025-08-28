@@ -127,8 +127,11 @@ instance Enum ObjectField where
     | 339 <= n, n <= 352 = PcF $ toEnum n
     | 353 <= n, n <= 397 = NpcF $ toEnum n
     | 398 <= n, n <= 404 = TrapF $ toEnum n
-    | 405 <= n, n <= 421 = ExtraF $ toEnum n
+    | 405 <= n, n <= 429 = ExtraF $ toEnum n
     | otherwise = error $ "toEnum @ObjectField: bad value: " ++ show n
+
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
 
 hasField :: ObjectType -> ObjectField -> Bool
 hasField = \cases

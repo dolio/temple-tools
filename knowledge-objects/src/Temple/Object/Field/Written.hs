@@ -45,6 +45,9 @@ instance Enum WrittenField where
     271 -> WrittenEnd
     n -> error $ "toEnum @WrittenField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 writtenFieldName :: WrittenField -> String
 writtenFieldName = \case
   WrittenBegin         -> "obj_f_written_begin"

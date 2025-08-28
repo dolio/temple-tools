@@ -57,6 +57,9 @@ instance Enum PortalField where
     101 -> PortalEnd
     n -> error $ "toEnum @PortalField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 portalFieldName :: PortalField -> String
 portalFieldName = \case
   PortalBegin        -> "obj_f_portal_begin"

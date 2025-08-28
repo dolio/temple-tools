@@ -45,6 +45,9 @@ instance Enum AmmoField where
     218 -> AmmoEnd
     n -> error $ "toEnum @AmmoField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 ammoFieldName :: AmmoField -> String
 ammoFieldName = \case
   AmmoBegin        -> "obj_f_ammo_begin"

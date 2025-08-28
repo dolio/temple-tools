@@ -184,6 +184,9 @@ instance Enum CritterField where
     338 -> CritterEnd
     n -> error $ "toEnum @CritterField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 critterFieldName :: CritterField -> String
 critterFieldName = \case
   CritterBegin                -> "obj_f_critter_begin"

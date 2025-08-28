@@ -27,6 +27,9 @@ instance Enum BagField where
     275 -> BagEnd
     n -> error $ "toEnum @BagField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 bagFieldName :: BagField -> String
 bagFieldName = \case
   BagBegin -> "obj_f_bag_begin"

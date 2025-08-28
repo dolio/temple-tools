@@ -36,6 +36,9 @@ instance Enum TrapField where
     404 -> TrapEnd
     n -> error $ "toEnum @TrapField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 trapFieldName :: TrapField -> String
 trapFieldName = \case
   TrapBegin                -> "obj_f_trap_begin"

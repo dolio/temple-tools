@@ -124,6 +124,9 @@ instance Enum ItemField where
     186 -> ItemEnd
     n -> error $ "toEnum @ItemField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 itemFieldName :: ItemField -> String
 itemFieldName = \case
   ItemBegin                    -> "obj_f_item_begin"

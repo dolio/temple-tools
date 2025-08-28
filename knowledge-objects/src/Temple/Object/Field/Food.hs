@@ -36,6 +36,9 @@ instance Enum FoodField where
     247 -> FoodEnd
     n -> error $ "toEnum @FoodField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 foodFieldName :: FoodField -> String
 foodFieldName = \case
   FoodBegin        -> "obj_f_food_begin"

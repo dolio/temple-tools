@@ -66,6 +66,9 @@ instance Enum ProjectileField where
     150 -> ProjectileEnd
     n -> error $ "toEnum @ProjectileField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 projectileFieldName :: ProjectileField -> String
 projectileFieldName = \case
   ProjectileBegin             -> "obj_f_projectile_begin"

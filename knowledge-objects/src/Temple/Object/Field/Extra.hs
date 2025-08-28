@@ -91,6 +91,9 @@ instance Enum ExtraField where
     429 -> PrototypeHandle
     n -> error $ "toEnum @ExtraField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 extraFieldName :: ExtraField -> String
 extraFieldName = \case
   TotalNormal         -> "obj_f_total_normal"

@@ -57,6 +57,9 @@ instance Enum PcField where
     352 -> PcEnd
     n -> error $ "toEnum @PcField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 pcFieldName :: PcField -> String
 pcFieldName = \case
   PcBegin           -> "obj_f_pc_begin"

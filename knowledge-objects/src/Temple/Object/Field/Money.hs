@@ -51,6 +51,9 @@ instance Enum MoneyField where
     240 -> MoneyEnd
     n -> error $ "toEnum @MoneyField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 moneyFieldName :: MoneyField -> String
 moneyFieldName = \case
   MoneyBegin        -> "obj_f_money_begin"

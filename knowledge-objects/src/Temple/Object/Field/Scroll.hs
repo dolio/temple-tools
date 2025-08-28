@@ -35,6 +35,9 @@ instance Enum ScrollField where
     254 -> ScrollEnd
     n -> error $ "toEnum @ScrollField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 scrollFieldName :: ScrollField -> String
 scrollFieldName = \case
   ScrollBegin        -> "obj_f_scroll_begin"

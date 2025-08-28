@@ -36,6 +36,9 @@ instance Enum KeyField where
     261 -> KeyEnd
     n -> error $ "toEnum @KeyField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 keyFieldName :: KeyField -> String
 keyFieldName = \case
   KeyBegin        -> "obj_f_key_begin"

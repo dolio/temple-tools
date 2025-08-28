@@ -72,6 +72,9 @@ instance Enum ContainerField where
     120 -> ContainerEnd
     n -> error $ "toEnum @ContainerField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 containerFieldName :: ContainerField -> String
 containerFieldName = \case
   ContainerBegin            -> "obj_f_container_begin"

@@ -150,6 +150,9 @@ instance Enum NpcField where
     397 -> NpcEnd
     n -> error $ "toEnum @NpcField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 npcFieldName :: NpcField -> String
 npcFieldName = \case
   NpcBegin                 -> "obj_f_npc_begin"

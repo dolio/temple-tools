@@ -54,6 +54,9 @@ instance Enum SceneryField where
     133 -> SceneryEnd
     n -> error $ "toEnum @SceneryField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 sceneryFieldName :: SceneryField -> String
 sceneryFieldName = \case
   SceneryBegin        -> "obj_f_scenery_begin"

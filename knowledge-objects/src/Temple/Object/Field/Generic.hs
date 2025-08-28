@@ -39,6 +39,9 @@ instance Enum GenericField where
     282 -> GenericEnd
     n -> error $ "toEnum @GenericField: bad value: " ++ show n
 
+  enumFrom n = enumFromTo n maxBound
+  enumFromThen m n = enumFromThenTo m n maxBound
+
 genericFieldName :: GenericField -> String
 genericFieldName = \case
   GenericBegin               -> "obj_f_generic_begin"
