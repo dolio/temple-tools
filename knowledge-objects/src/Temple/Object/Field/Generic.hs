@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Generic where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 -- 'Generic' is (I think) a category for items that don't fit into one of
@@ -42,43 +40,26 @@ instance Enum GenericField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-genericFieldName :: GenericField -> String
-genericFieldName = \case
-  GenericBegin               -> "obj_f_generic_begin"
-  GenericFlags               -> "obj_f_generic_flags"
-  GenericUsageBonus          -> "obj_f_generic_usage_bonus"
-  GenericUsageCountRemaining -> "obj_f_generic_usage_count_remaining"
-  GenericPadIntArr1          -> "obj_f_generic_pad_ias_1"
-  GenericPadInt64Arr1        -> "obj_f_generic_pad_i64as_1"
-  GenericEnd                 -> "obj_f_generic_end"
+instance Field GenericField where
+  fieldName = \case
+    GenericBegin               -> "obj_f_generic_begin"
+    GenericFlags               -> "obj_f_generic_flags"
+    GenericUsageBonus          -> "obj_f_generic_usage_bonus"
+    GenericUsageCountRemaining -> "obj_f_generic_usage_count_remaining"
+    GenericPadIntArr1          -> "obj_f_generic_pad_ias_1"
+    GenericPadInt64Arr1        -> "obj_f_generic_pad_i64as_1"
+    GenericEnd                 -> "obj_f_generic_end"
 
-genericFieldType :: GenericField -> FieldType
-genericFieldType = \case
-  GenericBegin -> BeginF
-  GenericFlags -> W32F
-  GenericUsageBonus -> W32F
-  GenericUsageCountRemaining -> W32F
-  GenericPadIntArr1 -> W32ArrF
-  GenericPadInt64Arr1 -> W64ArrF
-  GenericEnd -> EndF
+  fieldType = \case
+    GenericBegin -> BeginF
+    GenericFlags -> W32F
+    GenericUsageBonus -> W32F
+    GenericUsageCountRemaining -> W32F
+    GenericPadIntArr1 -> W32ArrF
+    GenericPadInt64Arr1 -> W64ArrF
+    GenericEnd -> EndF
 
-parsePartialGenericFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m GenericField
-parsePartialGenericFieldName =
-  choice
-    [ GenericBegin               <$ chunk "begin"
-    , GenericFlags               <$ chunk "flags"
-    , GenericUsageBonus          <$ chunk "usage_bonus"
-    , GenericUsageCountRemaining <$ chunk "usage_count_remaining"
-    , GenericPadIntArr1          <$ chunk "pad_ias_1"
-    , GenericPadInt64Arr1        <$ chunk "pad_i64as_1"
-    , GenericEnd                 <$ chunk "end"
-    ]
-
-parseGenericFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m GenericField
-parseGenericFieldName = chunk "obj_f_generic_" *> parsePartialGenericFieldName
+  isPadding = \case
+    GenericPadIntArr1 -> True
+    GenericPadInt64Arr1 -> True
+    _ -> False

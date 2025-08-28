@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Bag where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data BagField
@@ -30,34 +28,17 @@ instance Enum BagField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-bagFieldName :: BagField -> String
-bagFieldName = \case
-  BagBegin -> "obj_f_bag_begin"
-  BagFlags -> "obj_f_bag_flags"
-  BagSize  -> "obj_f_bag_size"
-  BagEnd   -> "obj_f_bag_end"
+instance Field BagField where
+  fieldName = \case
+    BagBegin -> "obj_f_bag_begin"
+    BagFlags -> "obj_f_bag_flags"
+    BagSize  -> "obj_f_bag_size"
+    BagEnd   -> "obj_f_bag_end"
 
-bagFieldType :: BagField -> FieldType
-bagFieldType = \case
-  BagBegin -> BeginF
-  BagFlags -> W32F
-  BagSize -> W32F
-  BagEnd -> EndF
+  fieldType = \case
+    BagBegin -> BeginF
+    BagFlags -> W32F
+    BagSize -> W32F
+    BagEnd -> EndF
 
-parsePartialBagFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m BagField
-parsePartialBagFieldName =
-  choice
-    [ BagBegin <$ chunk "begin"
-    , BagFlags <$ chunk "flags"
-    , BagSize  <$ chunk "size"
-    , BagEnd   <$ chunk "end"
-    ]
-
-parseBagFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m BagField
-parseBagFieldName = chunk "obj_f_bag_" *> parsePartialBagFieldName
+  isPadding _ = False

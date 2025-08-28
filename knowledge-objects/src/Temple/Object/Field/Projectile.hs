@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Projectile where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data ProjectileField
@@ -69,74 +67,51 @@ instance Enum ProjectileField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-projectileFieldName :: ProjectileField -> String
-projectileFieldName = \case
-  ProjectileBegin             -> "obj_f_projectile_begin"
-  ProjectileFlagsCombat       -> "obj_f_projectile_flags_combat"
-  ProjectileFlagsCombatDamage -> "obj_f_projectile_flags_combat_damage"
-  ProjectileParentWeapon      -> "obj_f_projectile_parent_weapon"
-  ProjectileParentAmmo        -> "obj_f_projectile_parent_ammo"
-  ProjectilePartSysId         -> "obj_f_projectile_part_sys_id"
-  ProjectileAccelerationX     -> "obj_f_projectile_acceleration_x"
-  ProjectileAccelerationY     -> "obj_f_projectile_acceleration_y"
-  ProjectileAccelerationZ     -> "obj_f_projectile_acceleration_z"
-  ProjectilePadInt4           -> "obj_f_projectile_pad_i_4"
-  ProjectilePadObj1           -> "obj_f_projectile_pad_obj_1"
-  ProjectilePadObj2           -> "obj_f_projectile_pad_obj_2"
-  ProjectilePadObj3           -> "obj_f_projectile_pad_obj_3"
-  ProjectilePadIntArr1        -> "obj_f_projectile_pad_ias_1"
-  ProjectilePadInt64Arr1      -> "obj_f_projectile_pad_i64as_1"
-  ProjectilePadObjArr1        -> "obj_f_projectile_pad_objas_1"
-  ProjectileEnd               -> "obj_f_projectile_end"
+instance Field ProjectileField where
+  fieldName = \case
+    ProjectileBegin             -> "obj_f_projectile_begin"
+    ProjectileFlagsCombat       -> "obj_f_projectile_flags_combat"
+    ProjectileFlagsCombatDamage -> "obj_f_projectile_flags_combat_damage"
+    ProjectileParentWeapon      -> "obj_f_projectile_parent_weapon"
+    ProjectileParentAmmo        -> "obj_f_projectile_parent_ammo"
+    ProjectilePartSysId         -> "obj_f_projectile_part_sys_id"
+    ProjectileAccelerationX     -> "obj_f_projectile_acceleration_x"
+    ProjectileAccelerationY     -> "obj_f_projectile_acceleration_y"
+    ProjectileAccelerationZ     -> "obj_f_projectile_acceleration_z"
+    ProjectilePadInt4           -> "obj_f_projectile_pad_i_4"
+    ProjectilePadObj1           -> "obj_f_projectile_pad_obj_1"
+    ProjectilePadObj2           -> "obj_f_projectile_pad_obj_2"
+    ProjectilePadObj3           -> "obj_f_projectile_pad_obj_3"
+    ProjectilePadIntArr1        -> "obj_f_projectile_pad_ias_1"
+    ProjectilePadInt64Arr1      -> "obj_f_projectile_pad_i64as_1"
+    ProjectilePadObjArr1        -> "obj_f_projectile_pad_objas_1"
+    ProjectileEnd               -> "obj_f_projectile_end"
 
-projectileFieldType :: ProjectileField -> FieldType
-projectileFieldType = \case
-  ProjectileBegin -> BeginF
-  ProjectileFlagsCombat -> W32F
-  ProjectileFlagsCombatDamage -> W32F
-  ProjectileParentWeapon -> ObjF
-  ProjectileParentAmmo -> ObjF
-  ProjectilePartSysId -> W32F
-  ProjectileAccelerationX -> F32F
-  ProjectileAccelerationY -> F32F
-  ProjectileAccelerationZ -> F32F
-  ProjectilePadInt4 -> W32F
-  ProjectilePadObj1 -> ObjF
-  ProjectilePadObj2 -> ObjF
-  ProjectilePadObj3 -> ObjF
-  ProjectilePadIntArr1 -> W32ArrF
-  ProjectilePadInt64Arr1 -> W64ArrF
-  ProjectilePadObjArr1 -> ObjArrF
-  ProjectileEnd -> EndF
+  fieldType = \case
+    ProjectileBegin -> BeginF
+    ProjectileFlagsCombat -> W32F
+    ProjectileFlagsCombatDamage -> W32F
+    ProjectileParentWeapon -> ObjF
+    ProjectileParentAmmo -> ObjF
+    ProjectilePartSysId -> W32F
+    ProjectileAccelerationX -> F32F
+    ProjectileAccelerationY -> F32F
+    ProjectileAccelerationZ -> F32F
+    ProjectilePadInt4 -> W32F
+    ProjectilePadObj1 -> ObjF
+    ProjectilePadObj2 -> ObjF
+    ProjectilePadObj3 -> ObjF
+    ProjectilePadIntArr1 -> W32ArrF
+    ProjectilePadInt64Arr1 -> W64ArrF
+    ProjectilePadObjArr1 -> ObjArrF
+    ProjectileEnd -> EndF
 
-parsePartialProjectileFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m ProjectileField
-parsePartialProjectileFieldName =
-  choice
-    [ ProjectileBegin             <$ chunk "begin"
-    , ProjectileFlagsCombat       <$ chunk "flags_combat"
-    , ProjectileFlagsCombatDamage <$ chunk "flags_combat_damage"
-    , ProjectileParentWeapon      <$ chunk "parent_weapon"
-    , ProjectileParentAmmo        <$ chunk "parent_ammo"
-    , ProjectilePartSysId         <$ chunk "part_sys_id"
-    , ProjectileAccelerationX     <$ chunk "acceleration_x"
-    , ProjectileAccelerationY     <$ chunk "acceleration_y"
-    , ProjectileAccelerationZ     <$ chunk "acceleration_z"
-    , ProjectilePadInt4           <$ chunk "pad_i_4"
-    , ProjectilePadObj1           <$ chunk "pad_obj_1"
-    , ProjectilePadObj2           <$ chunk "pad_obj_2"
-    , ProjectilePadObj3           <$ chunk "pad_obj_3"
-    , ProjectilePadIntArr1        <$ chunk "pad_ias_1"
-    , ProjectilePadInt64Arr1      <$ chunk "pad_i64as_1"
-    , ProjectilePadObjArr1        <$ chunk "pad_objas_1"
-    , ProjectileEnd               <$ chunk "end"
-    ]
-
-parseProjectileFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m ProjectileField
-parseProjectileFieldName =
-  chunk "obj_f_projectile_" *> parsePartialProjectileFieldName
+  isPadding = \case
+    ProjectilePadInt4 -> True
+    ProjectilePadObj1 -> True
+    ProjectilePadObj2 -> True
+    ProjectilePadObj3 -> True
+    ProjectilePadIntArr1 -> True
+    ProjectilePadInt64Arr1 -> True
+    ProjectilePadObjArr1 -> True
+    _ -> False

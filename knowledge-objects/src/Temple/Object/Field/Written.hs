@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Written where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data WrittenField
@@ -48,52 +46,34 @@ instance Enum WrittenField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-writtenFieldName :: WrittenField -> String
-writtenFieldName = \case
-  WrittenBegin         -> "obj_f_written_begin"
-  WrittenFlags         -> "obj_f_written_flags"
-  WrittenSubtype       -> "obj_f_written_subtype"
-  WrittenTextStartLine -> "obj_f_written_text_start_line"
-  WrittenTextEndLine   -> "obj_f_written_text_end_line"
-  WrittenPadInt1       -> "obj_f_written_pad_i_1"
-  WrittenPadInt2       -> "obj_f_written_pad_i_2"
-  WrittenPadIntArr1    -> "obj_f_written_pad_ias_1"
-  WrittenPadInt64Arr1  -> "obj_f_written_pad_i64as_1"
-  WrittenEnd           -> "obj_f_written_end"
+instance Field WrittenField where
+  fieldName = \case
+    WrittenBegin         -> "obj_f_written_begin"
+    WrittenFlags         -> "obj_f_written_flags"
+    WrittenSubtype       -> "obj_f_written_subtype"
+    WrittenTextStartLine -> "obj_f_written_text_start_line"
+    WrittenTextEndLine   -> "obj_f_written_text_end_line"
+    WrittenPadInt1       -> "obj_f_written_pad_i_1"
+    WrittenPadInt2       -> "obj_f_written_pad_i_2"
+    WrittenPadIntArr1    -> "obj_f_written_pad_ias_1"
+    WrittenPadInt64Arr1  -> "obj_f_written_pad_i64as_1"
+    WrittenEnd           -> "obj_f_written_end"
 
-writtenFieldType :: WrittenField -> FieldType
-writtenFieldType = \case
-  WrittenBegin -> BeginF
-  WrittenFlags -> W32F
-  WrittenSubtype -> W32F
-  WrittenTextStartLine -> W32F
-  WrittenTextEndLine -> W32F
-  WrittenPadInt1 -> W32F
-  WrittenPadInt2 -> W32F
-  WrittenPadIntArr1 -> W32ArrF
-  WrittenPadInt64Arr1 -> W64ArrF
-  WrittenEnd -> EndF
+  fieldType = \case
+    WrittenBegin -> BeginF
+    WrittenFlags -> W32F
+    WrittenSubtype -> W32F
+    WrittenTextStartLine -> W32F
+    WrittenTextEndLine -> W32F
+    WrittenPadInt1 -> W32F
+    WrittenPadInt2 -> W32F
+    WrittenPadIntArr1 -> W32ArrF
+    WrittenPadInt64Arr1 -> W64ArrF
+    WrittenEnd -> EndF
 
-parsePartialWrittenFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m WrittenField
-parsePartialWrittenFieldName =
-  choice
-    [ WrittenBegin         <$ chunk "begin"
-    , WrittenFlags         <$ chunk "flags"
-    , WrittenSubtype       <$ chunk "subtype"
-    , WrittenTextStartLine <$ chunk "text_start_line"
-    , WrittenTextEndLine   <$ chunk "text_end_line"
-    , WrittenPadInt1       <$ chunk "pad_i_1"
-    , WrittenPadInt2       <$ chunk "pad_i_2"
-    , WrittenPadIntArr1    <$ chunk "pad_ias_1"
-    , WrittenPadInt64Arr1  <$ chunk "pad_i64as_1"
-    , WrittenEnd           <$ chunk "end"
-    ]
-
-parseWrittenFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m WrittenField
-parseWrittenFieldName = chunk "obj_f_written_" *> parsePartialWrittenFieldName
+  isPadding = \case
+    WrittenPadInt1 -> True
+    WrittenPadInt2 -> True
+    WrittenPadIntArr1 -> True
+    WrittenPadInt64Arr1 -> True
+    _ -> False

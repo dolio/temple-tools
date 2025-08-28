@@ -41,6 +41,7 @@ library
     Temple.Object.Field.Trap
     Temple.Object.Field.Extra
 
+    Temple.Object.Field.Class
     Temple.Object.Field.Type
 
     Temple.Object.Script

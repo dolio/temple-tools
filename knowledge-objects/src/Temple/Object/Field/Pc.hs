@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Pc where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data PcField
@@ -60,64 +58,43 @@ instance Enum PcField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-pcFieldName :: PcField -> String
-pcFieldName = \case
-  PcBegin           -> "obj_f_pc_begin"
-  PcFlags           -> "obj_f_pc_flags"
-  PcPadIntArr0      -> "obj_f_pc_pad_ias_0"
-  PcPadInt64Arr0    -> "obj_f_pc_pad_i64as_0"
-  PcPlayerName      -> "obj_f_pc_player_name"
-  PcGlobalFlags     -> "obj_f_pc_global_flags"
-  PcGlobalVariables -> "obj_f_pc_global_variables"
-  PcVoiceIdx        -> "obj_f_pc_voice_idx"
-  PcRollCount       -> "obj_f_pc_roll_count"
-  PcPadInt2         -> "obj_f_pc_pad_i_2"
-  PcWeaponslotsIdx  -> "obj_f_pc_weaponslots_idx"
-  PcPadIntArr2      -> "obj_f_pc_pad_ias_2"
-  PcPadInt64Arr1    -> "obj_f_pc_pad_i64as_1"
-  PcEnd             -> "obj_f_pc_end"
+instance Field PcField where
+  fieldName = \case
+    PcBegin           -> "obj_f_pc_begin"
+    PcFlags           -> "obj_f_pc_flags"
+    PcPadIntArr0      -> "obj_f_pc_pad_ias_0"
+    PcPadInt64Arr0    -> "obj_f_pc_pad_i64as_0"
+    PcPlayerName      -> "obj_f_pc_player_name"
+    PcGlobalFlags     -> "obj_f_pc_global_flags"
+    PcGlobalVariables -> "obj_f_pc_global_variables"
+    PcVoiceIdx        -> "obj_f_pc_voice_idx"
+    PcRollCount       -> "obj_f_pc_roll_count"
+    PcPadInt2         -> "obj_f_pc_pad_i_2"
+    PcWeaponslotsIdx  -> "obj_f_pc_weaponslots_idx"
+    PcPadIntArr2      -> "obj_f_pc_pad_ias_2"
+    PcPadInt64Arr1    -> "obj_f_pc_pad_i64as_1"
+    PcEnd             -> "obj_f_pc_end"
 
-pcFieldType :: PcField -> FieldType
-pcFieldType = \case
-  PcBegin -> BeginF
-  PcFlags -> W32F
-  PcPadIntArr0 -> W32ArrF
-  PcPadInt64Arr0 -> W64ArrF
-  PcPlayerName -> StringF
-  PcGlobalFlags -> W32ArrF
-  PcGlobalVariables -> W32ArrF
-  PcVoiceIdx -> W32F
-  PcRollCount -> W32F
-  PcPadInt2 -> W32F
-  PcWeaponslotsIdx -> W32ArrF
-  PcPadIntArr2 -> W32ArrF
-  PcPadInt64Arr1 -> W64ArrF
-  PcEnd -> EndF
+  fieldType = \case
+    PcBegin -> BeginF
+    PcFlags -> W32F
+    PcPadIntArr0 -> W32ArrF
+    PcPadInt64Arr0 -> W64ArrF
+    PcPlayerName -> StringF
+    PcGlobalFlags -> W32ArrF
+    PcGlobalVariables -> W32ArrF
+    PcVoiceIdx -> W32F
+    PcRollCount -> W32F
+    PcPadInt2 -> W32F
+    PcWeaponslotsIdx -> W32ArrF
+    PcPadIntArr2 -> W32ArrF
+    PcPadInt64Arr1 -> W64ArrF
+    PcEnd -> EndF
 
-parsePartialPcFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m PcField
-parsePartialPcFieldName =
-  choice
-    [ PcBegin           <$ chunk "begin"
-    , PcFlags           <$ chunk "flags"
-    , PcPadIntArr0      <$ chunk "pad_ias_0"
-    , PcPadInt64Arr0    <$ chunk "pad_i64as_0"
-    , PcPlayerName      <$ chunk "player_name"
-    , PcGlobalFlags     <$ chunk "global_flags"
-    , PcGlobalVariables <$ chunk "global_variables"
-    , PcVoiceIdx        <$ chunk "voice_idx"
-    , PcRollCount       <$ chunk "roll_count"
-    , PcPadInt2         <$ chunk "pad_i_2"
-    , PcWeaponslotsIdx  <$ chunk "weaponslots_idx"
-    , PcPadIntArr2      <$ chunk "pad_ias_2"
-    , PcPadInt64Arr1    <$ chunk "pad_i64as_1"
-    , PcEnd             <$ chunk "end"
-    ]
-
-parsePcFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m PcField
-parsePcFieldName = chunk "obj_f_pc_" *> parsePartialPcFieldName
+  isPadding = \case
+    PcPadIntArr0 -> True
+    PcPadInt64Arr0 -> True
+    PcPadInt2 -> True
+    PcPadIntArr2 -> True
+    PcPadInt64Arr1 -> True
+    _ -> False

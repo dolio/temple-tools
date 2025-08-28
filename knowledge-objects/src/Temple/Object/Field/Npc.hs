@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Npc where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data NpcField
@@ -153,163 +151,117 @@ instance Enum NpcField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-npcFieldName :: NpcField -> String
-npcFieldName = \case
-  NpcBegin                 -> "obj_f_npc_begin"
-  NpcFlags                 -> "obj_f_npc_flags"
-  NpcLeader                -> "obj_f_npc_leader"
-  NpcAiData                -> "obj_f_npc_ai_data"
-  NpcCombatFocus           -> "obj_f_npc_combat_focus"
-  NpcWhoHitMeLast          -> "obj_f_npc_who_hit_me_last"
-  NpcWaypointsIdx          -> "obj_f_npc_waypoints_idx"
-  NpcWaypointCurrent       -> "obj_f_npc_waypoint_current"
-  NpcFaction               -> "obj_f_npc_faction"
-  NpcRetailPriceMultiplier -> "obj_f_npc_retail_price_multiplier"
-  NpcSubstituteInventory   -> "obj_f_npc_substitute_inventory"
-  NpcReactionBase          -> "obj_f_npc_reaction_base"
-  NpcChallengeRating       -> "obj_f_npc_challenge_rating"
-  NpcReactionPcIdx         -> "obj_f_npc_reaction_pc_idx"
-  NpcReactionLevelIdx      -> "obj_f_npc_reaction_level_idx"
-  NpcReactionTimeIdx       -> "obj_f_npc_reaction_time_idx"
-  NpcGeneratorData         -> "obj_f_npc_generator_data"
-  NpcAiListIdx             -> "obj_f_npc_ai_list_idx"
-  NpcSaveReflexesBonus     -> "obj_f_npc_save_reflexes_bonus"
-  NpcSaveFortitudeBonus    -> "obj_f_npc_save_fortitude_bonus"
-  NpcSaveWillpowerBonus    -> "obj_f_npc_save_willpower_bonus"
-  NpcAcBonus               -> "obj_f_npc_ac_bonus"
-  NpcAddMesh               -> "obj_f_npc_add_mesh"
-  NpcWaypointAnim          -> "obj_f_npc_waypoint_anim"
-  NpcPadInt3               -> "obj_f_npc_pad_i_3"
-  NpcPadInt4               -> "obj_f_npc_pad_i_4"
-  NpcPadInt5               -> "obj_f_npc_pad_i_5"
-  NpcAiFlags64             -> "obj_f_npc_ai_flags64"
-  NpcPadInt642             -> "obj_f_npc_pad_i64_2"
-  NpcPadInt643             -> "obj_f_npc_pad_i64_3"
-  NpcPadInt644             -> "obj_f_npc_pad_i64_4"
-  NpcPadInt645             -> "obj_f_npc_pad_i64_5"
-  NpcHitdiceIdx            -> "obj_f_npc_hitdice_idx"
-  NpcAiListTypeIdx         -> "obj_f_npc_ai_list_type_idx"
-  NpcPadIntArr3            -> "obj_f_npc_pad_ias_3"
-  NpcPadIntArr4            -> "obj_f_npc_pad_ias_4"
-  NpcPadIntArr5            -> "obj_f_npc_pad_ias_5"
-  NpcStandpoints           -> "obj_f_npc_standpoints"
-  NpcPadInt64Arr2          -> "obj_f_npc_pad_i64as_2"
-  NpcPadInt64Arr3          -> "obj_f_npc_pad_i64as_3"
-  NpcPadInt64Arr4          -> "obj_f_npc_pad_i64as_4"
-  NpcPadInt64Arr5          -> "obj_f_npc_pad_i64as_5"
-  NpcEnd                   -> "obj_f_npc_end"
+instance Field NpcField where
+  fieldName = \case
+    NpcBegin                 -> "obj_f_npc_begin"
+    NpcFlags                 -> "obj_f_npc_flags"
+    NpcLeader                -> "obj_f_npc_leader"
+    NpcAiData                -> "obj_f_npc_ai_data"
+    NpcCombatFocus           -> "obj_f_npc_combat_focus"
+    NpcWhoHitMeLast          -> "obj_f_npc_who_hit_me_last"
+    NpcWaypointsIdx          -> "obj_f_npc_waypoints_idx"
+    NpcWaypointCurrent       -> "obj_f_npc_waypoint_current"
+    NpcFaction               -> "obj_f_npc_faction"
+    NpcRetailPriceMultiplier -> "obj_f_npc_retail_price_multiplier"
+    NpcSubstituteInventory   -> "obj_f_npc_substitute_inventory"
+    NpcReactionBase          -> "obj_f_npc_reaction_base"
+    NpcChallengeRating       -> "obj_f_npc_challenge_rating"
+    NpcReactionPcIdx         -> "obj_f_npc_reaction_pc_idx"
+    NpcReactionLevelIdx      -> "obj_f_npc_reaction_level_idx"
+    NpcReactionTimeIdx       -> "obj_f_npc_reaction_time_idx"
+    NpcGeneratorData         -> "obj_f_npc_generator_data"
+    NpcAiListIdx             -> "obj_f_npc_ai_list_idx"
+    NpcSaveReflexesBonus     -> "obj_f_npc_save_reflexes_bonus"
+    NpcSaveFortitudeBonus    -> "obj_f_npc_save_fortitude_bonus"
+    NpcSaveWillpowerBonus    -> "obj_f_npc_save_willpower_bonus"
+    NpcAcBonus               -> "obj_f_npc_ac_bonus"
+    NpcAddMesh               -> "obj_f_npc_add_mesh"
+    NpcWaypointAnim          -> "obj_f_npc_waypoint_anim"
+    NpcPadInt3               -> "obj_f_npc_pad_i_3"
+    NpcPadInt4               -> "obj_f_npc_pad_i_4"
+    NpcPadInt5               -> "obj_f_npc_pad_i_5"
+    NpcAiFlags64             -> "obj_f_npc_ai_flags64"
+    NpcPadInt642             -> "obj_f_npc_pad_i64_2"
+    NpcPadInt643             -> "obj_f_npc_pad_i64_3"
+    NpcPadInt644             -> "obj_f_npc_pad_i64_4"
+    NpcPadInt645             -> "obj_f_npc_pad_i64_5"
+    NpcHitdiceIdx            -> "obj_f_npc_hitdice_idx"
+    NpcAiListTypeIdx         -> "obj_f_npc_ai_list_type_idx"
+    NpcPadIntArr3            -> "obj_f_npc_pad_ias_3"
+    NpcPadIntArr4            -> "obj_f_npc_pad_ias_4"
+    NpcPadIntArr5            -> "obj_f_npc_pad_ias_5"
+    NpcStandpoints           -> "obj_f_npc_standpoints"
+    NpcPadInt64Arr2          -> "obj_f_npc_pad_i64as_2"
+    NpcPadInt64Arr3          -> "obj_f_npc_pad_i64as_3"
+    NpcPadInt64Arr4          -> "obj_f_npc_pad_i64as_4"
+    NpcPadInt64Arr5          -> "obj_f_npc_pad_i64as_5"
+    NpcEnd                   -> "obj_f_npc_end"
 
-  NpcStandpointDayINVALID  ->
-    "obj_f_npc_standpoint_day_INTERNAL_DO_NOT_USE"
-  NpcStandpointNightINVALID ->
-    "obj_f_npc_standpoint_night_INTERNAL_DO_NOT_USE"
+    NpcStandpointDayINVALID  ->
+      "obj_f_npc_standpoint_day_INTERNAL_DO_NOT_USE"
+    NpcStandpointNightINVALID ->
+      "obj_f_npc_standpoint_night_INTERNAL_DO_NOT_USE"
 
-npcFieldType :: NpcField -> FieldType
-npcFieldType = \case
-  NpcBegin -> BeginF
-  NpcFlags -> W32F
-  NpcLeader -> ObjF
-  NpcAiData -> W32F
-  NpcCombatFocus -> ObjF
-  NpcWhoHitMeLast -> ObjF
-  NpcWaypointsIdx -> WayptArrF
-  NpcWaypointCurrent -> W32F
-  NpcStandpointDayINVALID -> LocF
-  NpcStandpointNightINVALID -> LocF
-  NpcFaction -> W32ArrF
-  NpcRetailPriceMultiplier -> W32F
-  NpcSubstituteInventory -> ObjF
-  NpcReactionBase -> W32F
-  NpcChallengeRating -> W32F
-  NpcReactionPcIdx -> ObjArrF
-  NpcReactionLevelIdx -> W32ArrF
-  NpcReactionTimeIdx -> W32ArrF
-  NpcGeneratorData -> W32F
-  NpcAiListIdx -> ObjArrF
-  NpcSaveReflexesBonus -> W32F
-  NpcSaveFortitudeBonus -> W32F
-  NpcSaveWillpowerBonus -> W32F
-  NpcAcBonus -> W32F
-  NpcAddMesh -> W32F
-  NpcWaypointAnim -> W32F
-  NpcPadInt3 -> W32F
-  NpcPadInt4 -> W32F
-  NpcPadInt5 -> W32F
-  NpcAiFlags64 -> W64F
-  NpcPadInt642 -> W64F
-  NpcPadInt643 -> W64F
-  NpcPadInt644 -> W64F
-  NpcPadInt645 -> W64F
-  NpcHitdiceIdx -> W32ArrF
-  NpcAiListTypeIdx -> W32ArrF
-  NpcPadIntArr3 -> W32ArrF
-  NpcPadIntArr4 -> W32ArrF
-  NpcPadIntArr5 -> W32ArrF
-  NpcStandpoints -> StandptArrF
-  NpcPadInt64Arr2 -> W64ArrF
-  NpcPadInt64Arr3 -> W64ArrF
-  NpcPadInt64Arr4 -> W64ArrF
-  NpcPadInt64Arr5 -> W64ArrF
-  NpcEnd -> EndF
+  fieldType = \case
+    NpcBegin -> BeginF
+    NpcFlags -> W32F
+    NpcLeader -> ObjF
+    NpcAiData -> W32F
+    NpcCombatFocus -> ObjF
+    NpcWhoHitMeLast -> ObjF
+    NpcWaypointsIdx -> WayptArrF
+    NpcWaypointCurrent -> W32F
+    NpcStandpointDayINVALID -> LocF
+    NpcStandpointNightINVALID -> LocF
+    NpcFaction -> W32ArrF
+    NpcRetailPriceMultiplier -> W32F
+    NpcSubstituteInventory -> ObjF
+    NpcReactionBase -> W32F
+    NpcChallengeRating -> W32F
+    NpcReactionPcIdx -> ObjArrF
+    NpcReactionLevelIdx -> W32ArrF
+    NpcReactionTimeIdx -> W32ArrF
+    NpcGeneratorData -> W32F
+    NpcAiListIdx -> ObjArrF
+    NpcSaveReflexesBonus -> W32F
+    NpcSaveFortitudeBonus -> W32F
+    NpcSaveWillpowerBonus -> W32F
+    NpcAcBonus -> W32F
+    NpcAddMesh -> W32F
+    NpcWaypointAnim -> W32F
+    NpcPadInt3 -> W32F
+    NpcPadInt4 -> W32F
+    NpcPadInt5 -> W32F
+    NpcAiFlags64 -> W64F
+    NpcPadInt642 -> W64F
+    NpcPadInt643 -> W64F
+    NpcPadInt644 -> W64F
+    NpcPadInt645 -> W64F
+    NpcHitdiceIdx -> W32ArrF
+    NpcAiListTypeIdx -> W32ArrF
+    NpcPadIntArr3 -> W32ArrF
+    NpcPadIntArr4 -> W32ArrF
+    NpcPadIntArr5 -> W32ArrF
+    NpcStandpoints -> StandptArrF
+    NpcPadInt64Arr2 -> W64ArrF
+    NpcPadInt64Arr3 -> W64ArrF
+    NpcPadInt64Arr4 -> W64ArrF
+    NpcPadInt64Arr5 -> W64ArrF
+    NpcEnd -> EndF
 
-parsePartialNpcFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m NpcField
-parsePartialNpcFieldName =
-  choice
-    [ NpcBegin                 <$ chunk "begin"
-    , NpcFlags                 <$ chunk "flags"
-    , NpcLeader                <$ chunk "leader"
-    , NpcAiData                <$ chunk "ai_data"
-    , NpcCombatFocus           <$ chunk "combat_focus"
-    , NpcWhoHitMeLast          <$ chunk "who_hit_me_last"
-    , NpcWaypointsIdx          <$ chunk "waypoints_idx"
-    , NpcWaypointCurrent       <$ chunk "waypoint_current"
-    , NpcFaction               <$ chunk "faction"
-    , NpcRetailPriceMultiplier <$ chunk "retail_price_multiplier"
-    , NpcSubstituteInventory   <$ chunk "substitute_inventory"
-    , NpcReactionBase          <$ chunk "reaction_base"
-    , NpcChallengeRating       <$ chunk "challenge_rating"
-    , NpcReactionPcIdx         <$ chunk "reaction_pc_idx"
-    , NpcReactionLevelIdx      <$ chunk "reaction_level_idx"
-    , NpcReactionTimeIdx       <$ chunk "reaction_time_idx"
-    , NpcGeneratorData         <$ chunk "generator_data"
-    , NpcAiListIdx             <$ chunk "ai_list_idx"
-    , NpcSaveReflexesBonus     <$ chunk "save_reflexes_bonus"
-    , NpcSaveFortitudeBonus    <$ chunk "save_fortitude_bonus"
-    , NpcSaveWillpowerBonus    <$ chunk "save_willpower_bonus"
-    , NpcAcBonus               <$ chunk "ac_bonus"
-    , NpcAddMesh               <$ chunk "add_mesh"
-    , NpcWaypointAnim          <$ chunk "waypoint_anim"
-    , NpcPadInt3               <$ chunk "pad_i_3"
-    , NpcPadInt4               <$ chunk "pad_i_4"
-    , NpcPadInt5               <$ chunk "pad_i_5"
-    , NpcAiFlags64             <$ chunk "ai_flags64"
-    , NpcPadInt642             <$ chunk "pad_i64_2"
-    , NpcPadInt643             <$ chunk "pad_i64_3"
-    , NpcPadInt644             <$ chunk "pad_i64_4"
-    , NpcPadInt645             <$ chunk "pad_i64_5"
-    , NpcHitdiceIdx            <$ chunk "hitdice_idx"
-    , NpcAiListTypeIdx         <$ chunk "ai_list_type_idx"
-    , NpcPadIntArr3            <$ chunk "pad_ias_3"
-    , NpcPadIntArr4            <$ chunk "pad_ias_4"
-    , NpcPadIntArr5            <$ chunk "pad_ias_5"
-    , NpcStandpoints           <$ chunk "standpoints"
-    , NpcPadInt64Arr2          <$ chunk "pad_i64as_2"
-    , NpcPadInt64Arr3          <$ chunk "pad_i64as_3"
-    , NpcPadInt64Arr4          <$ chunk "pad_i64as_4"
-    , NpcPadInt64Arr5          <$ chunk "pad_i64as_5"
-    , NpcEnd                   <$ chunk "end"
-
-    , NpcStandpointDayINVALID
-        <$ chunk "standpoint_day_INTERNAL_DO_NOT_USE"
-    , NpcStandpointNightINVALID
-        <$ chunk "standpoint_night_INTERNAL_DO_NOT_USE"
-    ]
-
-parseNpcFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m NpcField
-parseNpcFieldName = chunk "obj_f_npc_" *> parsePartialNpcFieldName
+  isPadding = \case
+    NpcPadInt3 -> True
+    NpcPadInt4 -> True
+    NpcPadInt5 -> True
+    NpcPadInt642 -> True
+    NpcPadInt643 -> True
+    NpcPadInt644 -> True
+    NpcPadInt645 -> True
+    NpcPadIntArr3 -> True
+    NpcPadIntArr4 -> True
+    NpcPadIntArr5 -> True
+    NpcPadInt64Arr2 -> True
+    NpcPadInt64Arr3 -> True
+    NpcPadInt64Arr4 -> True
+    NpcPadInt64Arr5 -> True
+    _ -> False

@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Scroll where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data ScrollField
@@ -38,43 +36,27 @@ instance Enum ScrollField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-scrollFieldName :: ScrollField -> String
-scrollFieldName = \case
-  ScrollBegin        -> "obj_f_scroll_begin"
-  ScrollFlags        -> "obj_f_scroll_flags"
-  ScrollPadInt1      -> "obj_f_scroll_pad_i_1"
-  ScrollPadInt2      -> "obj_f_scroll_pad_i_2"
-  ScrollPadIntArr1   -> "obj_f_scroll_pad_ias_1"
-  ScrollPadInt64Arr1 -> "obj_f_scroll_pad_i64as_1"
-  ScrollEnd          -> "obj_f_scroll_end"
+instance Field ScrollField where
+  fieldName = \case
+    ScrollBegin        -> "obj_f_scroll_begin"
+    ScrollFlags        -> "obj_f_scroll_flags"
+    ScrollPadInt1      -> "obj_f_scroll_pad_i_1"
+    ScrollPadInt2      -> "obj_f_scroll_pad_i_2"
+    ScrollPadIntArr1   -> "obj_f_scroll_pad_ias_1"
+    ScrollPadInt64Arr1 -> "obj_f_scroll_pad_i64as_1"
+    ScrollEnd          -> "obj_f_scroll_end"
 
-scrollFieldType :: ScrollField -> FieldType
-scrollFieldType = \case
-  ScrollBegin -> BeginF
-  ScrollFlags -> W32F
-  ScrollPadInt1 -> W32F
-  ScrollPadInt2 -> W32F
-  ScrollPadIntArr1 -> W32ArrF
-  ScrollPadInt64Arr1 -> W64ArrF
-  ScrollEnd -> EndF
+  fieldType = \case
+    ScrollBegin -> BeginF
+    ScrollFlags -> W32F
+    ScrollPadInt1 -> W32F
+    ScrollPadInt2 -> W32F
+    ScrollPadIntArr1 -> W32ArrF
+    ScrollPadInt64Arr1 -> W64ArrF
+    ScrollEnd -> EndF
 
-parsePartialScrollFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m ScrollField
-parsePartialScrollFieldName =
-  choice
-    [ ScrollBegin        <$ chunk "begin"
-    , ScrollFlags        <$ chunk "flags"
-    , ScrollPadInt1      <$ chunk "pad_i_1"
-    , ScrollPadInt2      <$ chunk "pad_i_2"
-    , ScrollPadIntArr1   <$ chunk "pad_ias_1"
-    , ScrollPadInt64Arr1 <$ chunk "pad_i64as_1"
-    , ScrollEnd          <$ chunk "end"
-    ]
-
-parseScrollFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m ScrollField
-parseScrollFieldName = chunk "obj_f_scroll_" *> parsePartialScrollFieldName
+  isPadding = \case
+    ScrollBegin -> False
+    ScrollFlags -> False
+    ScrollEnd -> False
+    _ -> True

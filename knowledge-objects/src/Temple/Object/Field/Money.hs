@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Money where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data MoneyField
@@ -54,58 +52,39 @@ instance Enum MoneyField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-moneyFieldName :: MoneyField -> String
-moneyFieldName = \case
-  MoneyBegin        -> "obj_f_money_begin"
-  MoneyFlags        -> "obj_f_money_flags"
-  MoneyQuantity     -> "obj_f_money_quantity"
-  MoneyType         -> "obj_f_money_type"
-  MoneyPadInt1      -> "obj_f_money_pad_i_1"
-  MoneyPadInt2      -> "obj_f_money_pad_i_2"
-  MoneyPadInt3      -> "obj_f_money_pad_i_3"
-  MoneyPadInt4      -> "obj_f_money_pad_i_4"
-  MoneyPadInt5      -> "obj_f_money_pad_i_5"
-  MoneyPadIntArr1   -> "obj_f_money_pad_ias_1"
-  MoneyPadInt64Arr1 -> "obj_f_money_pad_i64as_1"
-  MoneyEnd          -> "obj_f_money_end"
+instance Field MoneyField where
+  fieldName = \case
+    MoneyBegin        -> "obj_f_money_begin"
+    MoneyFlags        -> "obj_f_money_flags"
+    MoneyQuantity     -> "obj_f_money_quantity"
+    MoneyType         -> "obj_f_money_type"
+    MoneyPadInt1      -> "obj_f_money_pad_i_1"
+    MoneyPadInt2      -> "obj_f_money_pad_i_2"
+    MoneyPadInt3      -> "obj_f_money_pad_i_3"
+    MoneyPadInt4      -> "obj_f_money_pad_i_4"
+    MoneyPadInt5      -> "obj_f_money_pad_i_5"
+    MoneyPadIntArr1   -> "obj_f_money_pad_ias_1"
+    MoneyPadInt64Arr1 -> "obj_f_money_pad_i64as_1"
+    MoneyEnd          -> "obj_f_money_end"
 
-moneyFieldType :: MoneyField -> FieldType
-moneyFieldType = \case
-  MoneyBegin -> BeginF
-  MoneyFlags -> W32F
-  MoneyQuantity -> W32F
-  MoneyType -> W32F
-  MoneyPadInt1 -> W32F
-  MoneyPadInt2 -> W32F
-  MoneyPadInt3 -> W32F
-  MoneyPadInt4 -> W32F
-  MoneyPadInt5 -> W32F
-  MoneyPadIntArr1 -> W32ArrF
-  MoneyPadInt64Arr1 -> W64ArrF
-  MoneyEnd -> EndF
+  fieldType = \case
+    MoneyBegin -> BeginF
+    MoneyFlags -> W32F
+    MoneyQuantity -> W32F
+    MoneyType -> W32F
+    MoneyPadInt1 -> W32F
+    MoneyPadInt2 -> W32F
+    MoneyPadInt3 -> W32F
+    MoneyPadInt4 -> W32F
+    MoneyPadInt5 -> W32F
+    MoneyPadIntArr1 -> W32ArrF
+    MoneyPadInt64Arr1 -> W64ArrF
+    MoneyEnd -> EndF
 
-parsePartialMoneyFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m MoneyField
-parsePartialMoneyFieldName =
-  choice
-    [ MoneyBegin        <$ chunk "begin"
-    , MoneyFlags        <$ chunk "flags"
-    , MoneyQuantity     <$ chunk "quantity"
-    , MoneyType         <$ chunk "type"
-    , MoneyPadInt1      <$ chunk "pad_i_1"
-    , MoneyPadInt2      <$ chunk "pad_i_2"
-    , MoneyPadInt3      <$ chunk "pad_i_3"
-    , MoneyPadInt4      <$ chunk "pad_i_4"
-    , MoneyPadInt5      <$ chunk "pad_i_5"
-    , MoneyPadIntArr1   <$ chunk "pad_ias_1"
-    , MoneyPadInt64Arr1 <$ chunk "pad_i64as_1"
-    , MoneyEnd          <$ chunk "end"
-    ]
-
-parseMoneyFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m MoneyField
-parseMoneyFieldName = chunk "obj_f_money_" *> parsePartialMoneyFieldName
+  isPadding = \case
+    MoneyBegin -> False
+    MoneyFlags -> False
+    MoneyQuantity -> False
+    MoneyType -> False
+    MoneyEnd -> False
+    _ -> True

@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Key where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data KeyField
@@ -39,43 +37,27 @@ instance Enum KeyField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-keyFieldName :: KeyField -> String
-keyFieldName = \case
-  KeyBegin        -> "obj_f_key_begin"
-  KeyKeyId        -> "obj_f_key_key_id"
-  KeyPadInt1      -> "obj_f_key_pad_i_1"
-  KeyPadInt2      -> "obj_f_key_pad_i_2"
-  KeyPadIntArr1   -> "obj_f_key_pad_ias_1"
-  KeyPadInt64Arr1 -> "obj_f_key_pad_i64as_1"
-  KeyEnd          -> "obj_f_key_end"
+instance Field KeyField where
+  fieldName = \case
+    KeyBegin        -> "obj_f_key_begin"
+    KeyKeyId        -> "obj_f_key_key_id"
+    KeyPadInt1      -> "obj_f_key_pad_i_1"
+    KeyPadInt2      -> "obj_f_key_pad_i_2"
+    KeyPadIntArr1   -> "obj_f_key_pad_ias_1"
+    KeyPadInt64Arr1 -> "obj_f_key_pad_i64as_1"
+    KeyEnd          -> "obj_f_key_end"
 
-keyFieldType :: KeyField -> FieldType
-keyFieldType = \case
-  KeyBegin -> BeginF
-  KeyKeyId -> W32F
-  KeyPadInt1 -> W32F
-  KeyPadInt2 -> W32F
-  KeyPadIntArr1 -> W32ArrF
-  KeyPadInt64Arr1 -> W64ArrF
-  KeyEnd -> EndF
+  fieldType = \case
+    KeyBegin -> BeginF
+    KeyKeyId -> W32F
+    KeyPadInt1 -> W32F
+    KeyPadInt2 -> W32F
+    KeyPadIntArr1 -> W32ArrF
+    KeyPadInt64Arr1 -> W64ArrF
+    KeyEnd -> EndF
 
-parsePartialKeyFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m KeyField
-parsePartialKeyFieldName =
-  choice
-    [ KeyBegin        <$ chunk "begin"
-    , KeyKeyId        <$ chunk "key_id"
-    , KeyPadInt1      <$ chunk "pad_i_1"
-    , KeyPadInt2      <$ chunk "pad_i_2"
-    , KeyPadIntArr1   <$ chunk "pad_ias_1"
-    , KeyPadInt64Arr1 <$ chunk "pad_i64as_1"
-    , KeyEnd          <$ chunk "end"
-    ]
-
-parseKeyFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m KeyField
-parseKeyFieldName = chunk "obj_f_key_" *> parsePartialKeyFieldName
+  isPadding = \case
+    KeyBegin -> False
+    KeyKeyId -> False
+    KeyEnd -> False
+    _ -> True

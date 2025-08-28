@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Portal where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data PortalField
@@ -60,64 +58,44 @@ instance Enum PortalField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-portalFieldName :: PortalField -> String
-portalFieldName = \case
-  PortalBegin        -> "obj_f_portal_begin"
-  PortalFlags        -> "obj_f_portal_flags"
-  PortalLockDC       -> "obj_f_portal_lock_dc"
-  PortalKeyId        -> "obj_f_portal_key_id"
-  PortalNotifyNpc    -> "obj_f_portal_notify_npc"
-  PortalPadInt1      -> "obj_f_portal_pad_i_1"
-  PortalPadInt2      -> "obj_f_portal_pad_i_2"
-  PortalPadInt3      -> "obj_f_portal_pad_i_3"
-  PortalPadInt4      -> "obj_f_portal_pad_i_4"
-  PortalPadInt5      -> "obj_f_portal_pad_i_5"
-  PortalPadObj1      -> "obj_f_portal_pad_obj_1"
-  PortalPadIntArr1   -> "obj_f_portal_pad_ias_1"
-  PortalPadInt64Arr1 -> "obj_f_portal_pad_i64as_1"
-  PortalEnd          -> "obj_f_portal_end"
+instance Field PortalField where
+  fieldName = \case
+    PortalBegin        -> "obj_f_portal_begin"
+    PortalFlags        -> "obj_f_portal_flags"
+    PortalLockDC       -> "obj_f_portal_lock_dc"
+    PortalKeyId        -> "obj_f_portal_key_id"
+    PortalNotifyNpc    -> "obj_f_portal_notify_npc"
+    PortalPadInt1      -> "obj_f_portal_pad_i_1"
+    PortalPadInt2      -> "obj_f_portal_pad_i_2"
+    PortalPadInt3      -> "obj_f_portal_pad_i_3"
+    PortalPadInt4      -> "obj_f_portal_pad_i_4"
+    PortalPadInt5      -> "obj_f_portal_pad_i_5"
+    PortalPadObj1      -> "obj_f_portal_pad_obj_1"
+    PortalPadIntArr1   -> "obj_f_portal_pad_ias_1"
+    PortalPadInt64Arr1 -> "obj_f_portal_pad_i64as_1"
+    PortalEnd          -> "obj_f_portal_end"
 
-portalFieldType :: PortalField -> FieldType
-portalFieldType = \case
-  PortalBegin -> BeginF
-  PortalFlags -> W32F
-  PortalLockDC -> W32F
-  PortalKeyId -> W32F
-  PortalNotifyNpc -> W32F
-  PortalPadInt1 -> W32F
-  PortalPadInt2 -> W32F
-  PortalPadInt3 -> W32F
-  PortalPadInt4 -> W32F
-  PortalPadInt5 -> W32F
-  PortalPadObj1 -> ObjF
-  PortalPadIntArr1 -> W32ArrF
-  PortalPadInt64Arr1 -> W64ArrF
-  PortalEnd -> EndF
+  fieldType = \case
+    PortalBegin -> BeginF
+    PortalFlags -> W32F
+    PortalLockDC -> W32F
+    PortalKeyId -> W32F
+    PortalNotifyNpc -> W32F
+    PortalPadInt1 -> W32F
+    PortalPadInt2 -> W32F
+    PortalPadInt3 -> W32F
+    PortalPadInt4 -> W32F
+    PortalPadInt5 -> W32F
+    PortalPadObj1 -> ObjF
+    PortalPadIntArr1 -> W32ArrF
+    PortalPadInt64Arr1 -> W64ArrF
+    PortalEnd -> EndF
 
-parsePartialPortalFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m PortalField
-parsePartialPortalFieldName =
-  choice
-    [ PortalBegin        <$ chunk "begin"
-    , PortalFlags        <$ chunk "flags"
-    , PortalLockDC       <$ chunk "lock_dc"
-    , PortalKeyId        <$ chunk "key_id"
-    , PortalNotifyNpc    <$ chunk "notify_npc"
-    , PortalPadInt1      <$ chunk "pad_i_1"
-    , PortalPadInt2      <$ chunk "pad_i_2"
-    , PortalPadInt3      <$ chunk "pad_i_3"
-    , PortalPadInt4      <$ chunk "pad_i_4"
-    , PortalPadInt5      <$ chunk "pad_i_5"
-    , PortalPadObj1      <$ chunk "pad_obj_1"
-    , PortalPadIntArr1   <$ chunk "pad_ias_1"
-    , PortalPadInt64Arr1 <$ chunk "pad_i64as_1"
-    , PortalEnd          <$ chunk "end"
-    ]
-
-parsePortalFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m PortalField
-parsePortalFieldName = chunk "obj_f_portal_" *> parsePartialPortalFieldName
+  isPadding = \case
+    PortalBegin        -> False
+    PortalFlags        -> False
+    PortalLockDC       -> False
+    PortalKeyId        -> False
+    PortalNotifyNpc    -> False
+    PortalEnd          -> False
+    _                  -> True

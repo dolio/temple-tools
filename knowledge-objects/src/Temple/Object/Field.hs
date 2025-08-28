@@ -1,6 +1,7 @@
 
 module Temple.Object.Field
   ( module Temple.Object.Field
+  , module Temple.Object.Field.Class
   , module Temple.Object.Field.General
   , module Temple.Object.Field.Portal
   , module Temple.Object.Field.Container
@@ -23,9 +24,6 @@ module Temple.Object.Field
   , module Temple.Object.Field.Trap
   , module Temple.Object.Field.Extra
   ) where
-
-import Data.String
-import Text.Megaparsec
 
 import Temple.Object.Type
 
@@ -51,7 +49,7 @@ import Temple.Object.Field.Npc
 import Temple.Object.Field.Trap
 import Temple.Object.Field.Extra
 
-import Temple.Object.Field.Type
+import Temple.Object.Field.Class
 
 -- Object fields, split out by the type of objects they belong to.
 data ObjectField
@@ -158,81 +156,72 @@ hasField = \cases
   _              (ExtraF      _) -> True
   _              _               -> False
 
-fieldName :: ObjectField -> String
-fieldName = \case
-  GeneralF f -> generalFieldName f
-  PortalF f -> portalFieldName f
-  ContainerF f -> containerFieldName f
-  SceneryF f -> sceneryFieldName f
-  ProjectileF f -> projectileFieldName f
-  ItemF f -> itemFieldName f
-  WeaponF f -> weaponFieldName f
-  AmmoF f -> ammoFieldName f
-  ArmorF f -> armorFieldName f
-  MoneyF f -> moneyFieldName f
-  FoodF f -> foodFieldName f
-  ScrollF f -> scrollFieldName f
-  KeyF f -> keyFieldName f
-  WrittenF f -> writtenFieldName f
-  BagF f -> bagFieldName f
-  GenericF f -> genericFieldName f
-  CritterF f -> critterFieldName f
-  PcF f -> pcFieldName f
-  NpcF f -> npcFieldName f
-  TrapF f -> trapFieldName f
-  ExtraF f -> extraFieldName f
+instance Field ObjectField where
+  fieldName = \case
+    GeneralF f -> fieldName f
+    PortalF f -> fieldName f
+    ContainerF f -> fieldName f
+    SceneryF f -> fieldName f
+    ProjectileF f -> fieldName f
+    ItemF f -> fieldName f
+    WeaponF f -> fieldName f
+    AmmoF f -> fieldName f
+    ArmorF f -> fieldName f
+    MoneyF f -> fieldName f
+    FoodF f -> fieldName f
+    ScrollF f -> fieldName f
+    KeyF f -> fieldName f
+    WrittenF f -> fieldName f
+    BagF f -> fieldName f
+    GenericF f -> fieldName f
+    CritterF f -> fieldName f
+    PcF f -> fieldName f
+    NpcF f -> fieldName f
+    TrapF f -> fieldName f
+    ExtraF f -> fieldName f
 
--- Classifies the types of fields. Currently a `Maybe` since the fields we'll
--- be using/have information for are limited.
-fieldType :: ObjectField -> FieldType
-fieldType = \case
-  GeneralF f -> generalFieldType f
-  PortalF f -> portalFieldType f
-  ContainerF f -> containerFieldType f
-  SceneryF f -> sceneryFieldType f
-  ProjectileF f -> projectileFieldType f
-  ItemF f -> itemFieldType f
-  WeaponF f -> weaponFieldType f
-  AmmoF f -> ammoFieldType f
-  ArmorF f -> armorFieldType f
-  MoneyF f -> moneyFieldType f
-  FoodF f -> foodFieldType f
-  ScrollF f -> scrollFieldType f
-  KeyF f -> keyFieldType f
-  WrittenF f -> writtenFieldType f
-  BagF f -> bagFieldType f
-  GenericF f -> genericFieldType f
-  CritterF f -> critterFieldType f
-  PcF f -> pcFieldType f
-  NpcF f -> npcFieldType f
-  TrapF f -> trapFieldType f
-  ExtraF f -> extraFieldType f
+  fieldType = \case
+    GeneralF f -> fieldType f
+    PortalF f -> fieldType f
+    ContainerF f -> fieldType f
+    SceneryF f -> fieldType f
+    ProjectileF f -> fieldType f
+    ItemF f -> fieldType f
+    WeaponF f -> fieldType f
+    AmmoF f -> fieldType f
+    ArmorF f -> fieldType f
+    MoneyF f -> fieldType f
+    FoodF f -> fieldType f
+    ScrollF f -> fieldType f
+    KeyF f -> fieldType f
+    WrittenF f -> fieldType f
+    BagF f -> fieldType f
+    GenericF f -> fieldType f
+    CritterF f -> fieldType f
+    PcF f -> fieldType f
+    NpcF f -> fieldType f
+    TrapF f -> fieldType f
+    ExtraF f -> fieldType f
 
-parseFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m ObjectField
-parseFieldName = try (chunk "obj_f_") *>
-  choice
-    [ PortalF <$ chunk "portal_" <*> parsePartialPortalFieldName
-    , ContainerF <$ chunk "container_" <*> parsePartialContainerFieldName
-    , SceneryF <$ chunk "scenery_" <*> parsePartialSceneryFieldName
-    , ProjectileF <$ chunk "projectile_" <*> parsePartialProjectileFieldName
-    , ItemF <$ chunk "item_" <*> parsePartialItemFieldName
-    , WeaponF <$ chunk "weapon_" <*> parsePartialWeaponFieldName
-    , AmmoF <$ chunk "ammo_" <*> parsePartialAmmoFieldName
-    , ArmorF <$ chunk "armor_" <*> parsePartialArmorFieldName
-    , MoneyF <$ chunk "money_" <*> parsePartialMoneyFieldName
-    , FoodF <$ chunk "food_" <*> parsePartialFoodFieldName
-    , ScrollF <$ chunk "scroll_" <*> parsePartialScrollFieldName
-    , KeyF <$ chunk "key_" <*> parsePartialKeyFieldName
-    , WrittenF <$ chunk "written_" <*> parsePartialWrittenFieldName
-    , BagF <$ chunk "bag_" <*> parsePartialBagFieldName
-    , GenericF <$ chunk "generic_" <*> parsePartialGenericFieldName
-    , CritterF <$ chunk "critter_" <*> parsePartialCritterFieldName
-    , PcF <$ chunk "pc_" <*> parsePartialPcFieldName
-    , NpcF <$ chunk "npc_" <*> parsePartialNpcFieldName
-    , TrapF <$ chunk "trap_" <*> parsePartialTrapFieldName
-    , GeneralF <$> parsePartialGeneralFieldName
-    , ExtraF <$> parsePartialExtraFieldName
-    ]
+  isPadding = \case
+    GeneralF f -> isPadding f
+    PortalF f -> isPadding f
+    ContainerF f -> isPadding f
+    SceneryF f -> isPadding f
+    ProjectileF f -> isPadding f
+    ItemF f -> isPadding f
+    WeaponF f -> isPadding f
+    AmmoF f -> isPadding f
+    ArmorF f -> isPadding f
+    MoneyF f -> isPadding f
+    FoodF f -> isPadding f
+    ScrollF f -> isPadding f
+    KeyF f -> isPadding f
+    WrittenF f -> isPadding f
+    BagF f -> isPadding f
+    GenericF f -> isPadding f
+    CritterF f -> isPadding f
+    PcF f -> isPadding f
+    NpcF f -> isPadding f
+    TrapF f -> isPadding f
+    ExtraF f -> isPadding f

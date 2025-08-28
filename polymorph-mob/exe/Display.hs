@@ -146,7 +146,7 @@ displayField :: Map Word32 ByteString -> ObjectField -> Value -> Builder
 displayField condNames fld val
   = mconcat
   [ byteString "\""
-  , string8 $ fieldName fld
+  , byteString $ fieldName fld
   , byteString "\": "
   , displayValue condNames val
   ]

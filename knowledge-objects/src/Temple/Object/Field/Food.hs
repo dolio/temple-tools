@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Food where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data FoodField
@@ -39,43 +37,28 @@ instance Enum FoodField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-foodFieldName :: FoodField -> String
-foodFieldName = \case
-  FoodBegin        -> "obj_f_food_begin"
-  FoodFlags        -> "obj_f_food_flags"
-  FoodPadInt1      -> "obj_f_food_pad_i_1"
-  FoodPadInt2      -> "obj_f_food_pad_i_2"
-  FoodPadIntArr1   -> "obj_f_food_pad_ias_1"
-  FoodPadInt64Arr1 -> "obj_f_food_pad_i64as_1"
-  FoodEnd          -> "obj_f_food_end"
+instance Field FoodField where
+  fieldName = \case
+    FoodBegin        -> "obj_f_food_begin"
+    FoodFlags        -> "obj_f_food_flags"
+    FoodPadInt1      -> "obj_f_food_pad_i_1"
+    FoodPadInt2      -> "obj_f_food_pad_i_2"
+    FoodPadIntArr1   -> "obj_f_food_pad_ias_1"
+    FoodPadInt64Arr1 -> "obj_f_food_pad_i64as_1"
+    FoodEnd          -> "obj_f_food_end"
 
-foodFieldType :: FoodField -> FieldType
-foodFieldType = \case
-  FoodBegin -> BeginF
-  FoodFlags -> W32F
-  FoodPadInt1 -> W32F
-  FoodPadInt2 -> W32F
-  FoodPadIntArr1 -> W32ArrF
-  FoodPadInt64Arr1 -> W64ArrF
-  FoodEnd -> EndF
+  fieldType = \case
+    FoodBegin -> BeginF
+    FoodFlags -> W32F
+    FoodPadInt1 -> W32F
+    FoodPadInt2 -> W32F
+    FoodPadIntArr1 -> W32ArrF
+    FoodPadInt64Arr1 -> W64ArrF
+    FoodEnd -> EndF
 
-parsePartialFoodFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m FoodField
-parsePartialFoodFieldName =
-  choice
-    [ FoodBegin        <$ chunk "begin"
-    , FoodFlags        <$ chunk "flags"
-    , FoodPadInt1      <$ chunk "pad_i_1"
-    , FoodPadInt2      <$ chunk "pad_i_2"
-    , FoodPadIntArr1   <$ chunk "pad_ias_1"
-    , FoodPadInt64Arr1 <$ chunk "pad_i64as_1"
-    , FoodEnd          <$ chunk "end"
-    ]
+  isPadding = \case
+    FoodBegin -> False
+    FoodFlags -> False
+    FoodEnd -> False
+    _ -> True
 
-parseFoodFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m FoodField
-parseFoodFieldName = chunk "obj_f_food_" *> parsePartialFoodFieldName

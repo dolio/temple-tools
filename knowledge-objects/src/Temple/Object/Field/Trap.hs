@@ -1,9 +1,7 @@
 
 module Temple.Object.Field.Trap where
 
-import Data.String
-import Text.Megaparsec
-
+import Temple.Object.Field.Class
 import Temple.Object.Field.Type
 
 data TrapField
@@ -39,43 +37,27 @@ instance Enum TrapField where
   enumFrom n = enumFromTo n maxBound
   enumFromThen m n = enumFromThenTo m n maxBound
 
-trapFieldName :: TrapField -> String
-trapFieldName = \case
-  TrapBegin                -> "obj_f_trap_begin"
-  TrapFlags                -> "obj_f_trap_flags"
-  TrapDifficulty           -> "obj_f_trap_difficulty"
-  TrapPadInt2              -> "obj_f_trap_pad_i_2"
-  TrapPadIntArr1           -> "obj_f_trap_pad_ias_1"
-  TrapPadInt64Arr1         -> "obj_f_trap_pad_i64as_1"
-  TrapEnd                  -> "obj_f_trap_end"
+instance Field TrapField where
+  fieldName = \case
+    TrapBegin                -> "obj_f_trap_begin"
+    TrapFlags                -> "obj_f_trap_flags"
+    TrapDifficulty           -> "obj_f_trap_difficulty"
+    TrapPadInt2              -> "obj_f_trap_pad_i_2"
+    TrapPadIntArr1           -> "obj_f_trap_pad_ias_1"
+    TrapPadInt64Arr1         -> "obj_f_trap_pad_i64as_1"
+    TrapEnd                  -> "obj_f_trap_end"
 
-trapFieldType :: TrapField -> FieldType
-trapFieldType = \case
-  TrapBegin -> BeginF
-  TrapFlags -> W32F
-  TrapDifficulty -> W32F
-  TrapPadInt2 -> W32F
-  TrapPadIntArr1 -> W32ArrF
-  TrapPadInt64Arr1 -> W64ArrF
-  TrapEnd -> EndF
+  fieldType = \case
+    TrapBegin -> BeginF
+    TrapFlags -> W32F
+    TrapDifficulty -> W32F
+    TrapPadInt2 -> W32F
+    TrapPadIntArr1 -> W32ArrF
+    TrapPadInt64Arr1 -> W64ArrF
+    TrapEnd -> EndF
 
-parsePartialTrapFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m TrapField
-parsePartialTrapFieldName =
-  choice
-    [ TrapBegin                <$ chunk "begin"
-    , TrapFlags                <$ chunk "flags"
-    , TrapDifficulty           <$ chunk "difficulty"
-    , TrapPadInt2              <$ chunk "pad_i_2"
-    , TrapPadIntArr1           <$ chunk "pad_ias_1"
-    , TrapPadInt64Arr1         <$ chunk "pad_i64as_1"
-    , TrapEnd                  <$ chunk "end"
-    ]
-
-parseTrapFieldName
-  :: MonadParsec e s m
-  => IsString (Tokens s)
-  => m TrapField
-parseTrapFieldName = chunk "obj_f_trap_" *> parsePartialTrapFieldName
+  isPadding = \case
+    TrapPadInt2 -> True
+    TrapPadIntArr1 -> True
+    TrapPadInt64Arr1 -> True
+    _ -> False
