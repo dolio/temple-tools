@@ -31,7 +31,7 @@ data NpcField
   | NpcAcBonus
   | NpcAddMesh
   | NpcWaypointAnim
-  | NpcPadInt3
+  | NpcLootShare
   | NpcPadInt4
   | NpcPadInt5
   | NpcAiFlags64
@@ -80,7 +80,7 @@ instance Enum NpcField where
     NpcAcBonus                         -> 376
     NpcAddMesh                         -> 377
     NpcWaypointAnim                    -> 378
-    NpcPadInt3                         -> 379
+    NpcLootShare                       -> 379
     NpcPadInt4                         -> 380
     NpcPadInt5                         -> 381
     NpcAiFlags64                       -> 382
@@ -127,7 +127,7 @@ instance Enum NpcField where
     376 -> NpcAcBonus
     377 -> NpcAddMesh
     378 -> NpcWaypointAnim
-    379 -> NpcPadInt3
+    379 -> NpcLootShare
     380 -> NpcPadInt4
     381 -> NpcPadInt5
     382 -> NpcAiFlags64
@@ -177,7 +177,7 @@ instance Field NpcField where
     NpcAcBonus               -> "obj_f_npc_ac_bonus"
     NpcAddMesh               -> "obj_f_npc_add_mesh"
     NpcWaypointAnim          -> "obj_f_npc_waypoint_anim"
-    NpcPadInt3               -> "obj_f_npc_pad_i_3"
+    NpcLootShare             -> "obj_f_npc_loot_share"
     NpcPadInt4               -> "obj_f_npc_pad_i_4"
     NpcPadInt5               -> "obj_f_npc_pad_i_5"
     NpcAiFlags64             -> "obj_f_npc_ai_flags64"
@@ -229,7 +229,7 @@ instance Field NpcField where
     NpcAcBonus -> W32F
     NpcAddMesh -> W32F
     NpcWaypointAnim -> W32F
-    NpcPadInt3 -> W32F
+    NpcLootShare -> W32F
     NpcPadInt4 -> W32F
     NpcPadInt5 -> W32F
     NpcAiFlags64 -> W64F
@@ -250,7 +250,6 @@ instance Field NpcField where
     NpcEnd -> EndF
 
   isPadding = \case
-    NpcPadInt3 -> True
     NpcPadInt4 -> True
     NpcPadInt5 -> True
     NpcPadInt642 -> True

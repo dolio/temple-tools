@@ -30,3 +30,25 @@ data FieldType
   | SkillArrF   -- array of skills
   deriving (Eq, Ord, Show)
 
+-- Classifies field types that hold arrays
+isArray :: FieldType -> Bool
+isArray = \case
+  W32ArrF -> True
+  W64ArrF -> True
+  CondArrF -> True
+  ObjArrF -> True
+  StandptArrF -> True
+  WayptArrF -> True
+  AbilityArrF -> True
+  ScriptArrF -> True
+  SpellArrF -> True
+  SkillArrF -> True
+  _ -> False
+
+-- Classifies field types that are just markers, with no associated data.
+isMarker :: FieldType -> Bool
+isMarker = \case
+  BeginF -> True
+  EndF -> True
+  NoneF -> True
+  _ -> False

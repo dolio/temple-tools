@@ -43,7 +43,7 @@ data CritterField
   | CritterSkillIdx
   | CritterReach
   | CritterSubdualDamage
-  | CritterPadInt4 -- level up scheme?
+  | CritterLevelUpScheme -- level up scheme?
   | CritterPadInt5
   | CritterSequence
   | CritterHairStyle
@@ -103,7 +103,7 @@ instance Enum CritterField where
     CritterSkillIdx             -> 317
     CritterReach                -> 318
     CritterSubdualDamage        -> 319
-    CritterPadInt4              -> 320
+    CritterLevelUpScheme        -> 320
     CritterPadInt5              -> 321
     CritterSequence             -> 322
     CritterHairStyle            -> 323
@@ -161,7 +161,7 @@ instance Enum CritterField where
     317 -> CritterSkillIdx
     318 -> CritterReach
     319 -> CritterSubdualDamage
-    320 -> CritterPadInt4
+    320 -> CritterLevelUpScheme
     321 -> CritterPadInt5
     322 -> CritterSequence
     323 -> CritterHairStyle
@@ -224,7 +224,7 @@ instance Field CritterField where
     CritterSkillIdx             -> "obj_f_critter_skill_idx"
     CritterReach                -> "obj_f_critter_reach"
     CritterSubdualDamage        -> "obj_f_critter_subdual_damage"
-    CritterPadInt4              -> "obj_f_critter_pad_i_4"
+    CritterLevelUpScheme        -> "obj_f_critter_level_up_scheme"
     CritterPadInt5              -> "obj_f_critter_pad_i_5"
     CritterSequence             -> "obj_f_critter_sequence"
     CritterHairStyle            -> "obj_f_critter_hair_style"
@@ -282,7 +282,7 @@ instance Field CritterField where
     CritterSkillIdx -> SkillArrF
     CritterReach -> W32F
     CritterSubdualDamage -> W32F
-    CritterPadInt4 -> W32F
+    CritterLevelUpScheme -> W32F
     CritterPadInt5 -> W32F
     CritterSequence -> W32F
     CritterHairStyle -> W32F
@@ -304,7 +304,7 @@ instance Field CritterField where
 
   isPadding = \case
     CritterPadInt1 -> True
-    CritterPadInt4 -> True
+    CritterLevelUpScheme -> True
     CritterPadInt5 -> True
     CritterPadInt3 -> True
     CritterPadInt642 -> True
