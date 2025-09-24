@@ -5,9 +5,9 @@ import Control.Monad
 import Options.Applicative
 import System.IO
 
-import Footer
-import Entry
-import Tree
+import Temple.Dat.Footer
+import Temple.Dat.Entry
+import Temple.Dat.Tree
 
 data Opts = O { _verbose :: Bool, _directory :: FilePath }
 

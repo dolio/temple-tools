@@ -1,4 +1,4 @@
-module Footer where
+module Temple.Dat.Footer where
 
 import Data.ByteString
 import Data.Serialize.Get

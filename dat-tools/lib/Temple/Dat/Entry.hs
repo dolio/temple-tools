@@ -1,4 +1,4 @@
-module Entry
+module Temple.Dat.Entry
   ( Entry (..)
   , isCompressed
   , isDirectory

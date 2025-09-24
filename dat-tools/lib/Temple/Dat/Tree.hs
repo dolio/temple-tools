@@ -1,4 +1,4 @@
-module Tree
+module Temple.Dat.Tree
   ( FileInfo (..)
   , DirectoryTree (..)
   , buildDirectoryTree
@@ -16,8 +16,8 @@ import Data.Word
 import System.Directory
 import System.IO
 
-import Entry (Entry)
-import Entry qualified as E
+import Temple.Dat.Entry (Entry)
+import Temple.Dat.Entry qualified as E
 
 -- Information for an archived file.
 data FileInfo
