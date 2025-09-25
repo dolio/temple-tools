@@ -1,5 +1,5 @@
 cabal-version: 3.14
-name: dat-tools
+name: craft-dat
 version: 0.1.0.0
 synopsis: Simple tool for working with Troika DAT files
 license: GPL-3.0-or-later
@@ -12,9 +12,10 @@ build-type: Simple
 extra-doc-files: CHANGELOG.md
 
 description:
-  Discern DAT is a program for extracting Troika DAT archives, used in
-  for instance the Temple of Elemental Evil PC game. It can also merely
-  list the contents of a file, showing what structure would be created.
+  Craft DAT is a program for manipulating Troika DAT archives, used in
+  for instance the Temple of Elemental Evil PC game. It can extract or
+  list the contents of an existing DAT, or create a new DAT from a
+  directory structure.
 
   No effort is made to avoid overwriting files, so take care.
 
@@ -49,14 +50,14 @@ library dat-format
     Temple.Dat.Footer
     Temple.Dat.Tree
 
-executable discern-dat
+executable craft-dat
   import: settings
   main-is: Main.hs
 
   build-depends:
     base ^>=4.20.1.0,
     optparse-applicative ^>=0.19.0.0,
-    dat-tools:dat-format
+    craft-dat:dat-format
 
-  hs-source-dirs: discern
+  hs-source-dirs: exe
   default-language: GHC2024
