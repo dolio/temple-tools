@@ -3,12 +3,15 @@ module Temple.Dat.Entry
   , isCompressed
   , isDirectory
   , getEntries
+  , writeEntries
   ) where
 
 import Control.Monad
 import Data.Bits ((.&.))
-import Data.ByteString
+import Data.ByteString as B
+import Data.Foldable (traverse_)
 import Data.Serialize.Get
+import Data.Serialize.Put
 import Data.Word
 import System.IO
 
@@ -72,3 +75,25 @@ getEntries :: Handle -> Int -> IO [Entry]
 getEntries h sz = hGet h sz >>= \bs -> case runGet parseEntries bs of
   Left msg -> fail msg
   Right es -> pure es
+
+putEntry :: Entry -> Put
+putEntry (EN {..}) = do
+  putWord32le (fromIntegral $ B.length name + 1)
+  putByteString name
+  putWord8 0 -- null terminator
+  putWord32le 0
+  putWord32le attributes
+  putWord32le fullSize
+  putWord32le packSize
+  putWord32le offset
+  putWord32le parent
+  putWord32le firstChild
+  putWord32le nextSibling
+
+putEntries :: [Entry] -> Put
+putEntries es = do
+  putWord32le (fromIntegral $ Prelude.length es)
+  traverse_ putEntry es
+
+writeEntries :: Handle -> [Entry] -> IO ()
+writeEntries h es = hPut h . runPut $ putEntries es

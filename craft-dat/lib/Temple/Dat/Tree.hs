@@ -198,7 +198,7 @@ buildFromDirectory root =
 compressAndNumber
   :: Handle
   -> DirectoryTree () FilePath
-  -> IO (DirectoryTree Word32 (Word32, FileInfo))
+  -> IO EntryTree
 compressAndNumber h dt = evalStateT (bitraverse d f dt) (-1) where
   d _ = state \n -> (n, n+1)
 
