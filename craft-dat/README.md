@@ -1,27 +1,32 @@
-# Discern Dat
+# Craft (Dat)
 
 ## Info
 
-This is an implementation of a quick-and-dirty extractor for Troika DAT
-files. It has two modes, `list` and `extract`.
+This is an implementation of a quick-and-dirty extractor/creator for Troika
+DAT files. It has three modes, `list`, `disjoin` and `fabricate`.
 
 The `list` mode simply lists the files stored in a DAT archive, showing the
-directories/files that _would_ be created in extract mode. Whether or not a
+directories/files that _would_ be created in disjoin mode. Whether or not a
 stored file is compressed is also indicated. Usage is:
 
-  > discern-dat list FILE
+  > craft-dat list FILE
 
-The `extract` mode actually extracts the entire contents of the archive.
+The `disjoin` mode actually extracts the entire contents of the archive.
 Usage is:
 
-  > discern-dat extract FILE
+  > craft-dat disjoin FILE
 
 An optional `-d` argument specifies a directory to extract the files to.
-This works both in `list` and `extract` mode, with the former showing the
+This works both in `list` and `disjoin` mode, with the former showing the
 locations of the files that will be created including the directory.
 
+The `fabricate` mode is for creating archives. It takes a directory as an
+argument, and creates a DAT file containing the entire contents of that
+directory. An optional `-o` argument specifies the name of the archive to be
+created. By default, the directory name is used, but with `.dat` appended.
+
 A `-v` switch will put the program into 'verbose' mode, which will print
-out some extra information while running.
+out some extra information while running in some modes.
 
 Some warnings:
 
@@ -55,4 +60,4 @@ new.
 The project is set up to build with `cabal`, and once you have a Haskell
 setup, should be able to be installed just with
 
-    cabal install discern-dat
+    cabal install craft-dat

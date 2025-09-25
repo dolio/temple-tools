@@ -14,10 +14,10 @@ will be how I work most of the time).
 
 ## Tools
 
-- discern-dat
+- craft-dat
 
-  This tool extracts Troika DAT archives, which are used to hold most of
-  the data files. This is necessary if you want to see most of the
+  This tool extracts/creates Troika DAT archives, which are used to hold
+  most of the data files. This is necessary if you want to see most of the
   individual files from the original game.
 
   The format isn't complicated, but the extractors I know of are Windows
