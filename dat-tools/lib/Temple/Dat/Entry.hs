@@ -23,7 +23,7 @@ data Entry
   , parent :: Word32      -- parent entry
   , firstChild :: Word32  -- first child entry
   , nextSibling :: Word32 -- next sibling entry
-  }
+  } deriving (Show)
 
 -- Tests an entry's attributes against a mask
 testMask :: Word32 -> Entry -> Bool

@@ -70,7 +70,7 @@ main = customExecParser p act >>= \case
 
 -- Common setup for both commands, opens a file and constructs the embedded
 -- directory tree.
-prime :: Bool -> FilePath -> IO (Handle, DirectoryTree)
+prime :: Bool -> FilePath -> IO (Handle, DirectoryTree () FileInfo)
 prime verbose file = do
   h <- openFile file ReadMode
   hSeek h SeekFromEnd (-12)
