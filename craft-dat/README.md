@@ -3,21 +3,21 @@
 ## Info
 
 This is an implementation of a quick-and-dirty extractor/creator for Troika
-DAT files. It has three modes, `list`, `disjoin` and `fabricate`.
+DAT files. It has three modes, `discern`, `disjoin` and `fabricate`.
 
-The `list` mode simply lists the files stored in a DAT archive, showing the
+The `discern` mode simply lists the files stored in a DAT archive, showing the
 directories/files that _would_ be created in disjoin mode. Whether or not a
 stored file is compressed is also indicated. Usage is:
 
-  > craft-dat list FILE
+  > craft-dat discern FILE
 
 The `disjoin` mode actually extracts the entire contents of the archive.
 Usage is:
 
   > craft-dat disjoin FILE
 
-An optional `-d` argument specifies a directory to extract the files to.
-This works both in `list` and `disjoin` mode, with the former showing the
+An optional `-d` argument specifies a directory to extract the files to. This
+works both in `discern` and `disjoin` mode, with the former showing the
 locations of the files that will be created including the directory.
 
 The `fabricate` mode is for creating archives. It takes a directory as an
@@ -27,6 +27,12 @@ created. By default, the directory name is used, but with `.dat` appended.
 
 A `-v` switch will put the program into 'verbose' mode, which will print
 out some extra information while running in some modes.
+
+Original DAT files contain some garbage data for each file entry. Instead of
+just filling this arbitrarily, `craft-dat fabricate` will put checksums of the
+original data in those spots. These can be validated by running the command
+`craft-dat discern -C`. Failure indicates the file has suffered some sort of
+random corruption. Note that failure is _expected_ on original game files.
 
 Some warnings:
 
