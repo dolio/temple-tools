@@ -20,7 +20,7 @@ import Data.ByteString.Lazy qualified as L
 import Data.Digest.CRC32
 import Data.HashMap.Strict as HM
 import Data.HashSet qualified as HS
-import Data.List (mapAccumR)
+import Data.List (mapAccumR, intercalate)
 import Data.Traversable (for)
 import Data.Word
 import System.Directory
@@ -155,15 +155,34 @@ buildDirectoryTree :: [Entry] -> DirectoryTree () FileInfo
 buildDirectoryTree = consume root emptyDirs [] . zip [0..]
   where root = HM.singleton (-1) []
 
--- Displays a directory structure as a complete listing
-displayDirectoryTree :: String -> DirectoryTree () FileInfo -> String
-displayDirectoryTree root d0 = descend (showString root) d0 ""
+-- Displays a directory structure as a complete listing. If a handle is
+-- provided, it will be used to check CRCs of files presumed to be in the
+-- 'misc' field.
+displayDirectoryTree ::
+  Maybe Handle -> String -> DirectoryTree () FileInfo -> IO ()
+displayDirectoryTree mh root d0 = descend (showString root) d0
   where
-  descend :: ShowS -> DirectoryTree () FileInfo -> ShowS
-  descend path (File f) =
-    path . showString (if compressed f then " (compressed)\n" else "\n")
-  descend path (Branch _ ds) =
-    path . showString "/\n" . foldMapWithKey f ds
+  dispInfo [] = ""
+  dispInfo is = " (" ++ intercalate ", " is ++ ")"
+
+  compInfo fi = if compressed fi then ["compressed"] else []
+
+  fileInfo
+    | Just h <- mh = \fi -> do
+      bs <- getFileData h fi
+      let CRC32 cks = digest $ L.toStrict bs
+      if cks == misc fi
+      then pure $ compInfo fi ++ ["checksum ok"]
+      else pure $ compInfo fi ++ ["checksum mismatch"]
+    | otherwise = pure . compInfo
+
+  descend :: ShowS -> DirectoryTree () FileInfo -> IO ()
+  descend path (File f) = do
+    finf <- fileInfo f
+    putStrLn . path $ dispInfo finf
+  descend path (Branch _ ds) = do
+    putStrLn $ path "/"
+    foldMapWithKey f ds
     where
     f p dt = descend (path . showString "/" . showString (C8.unpack p)) dt
 

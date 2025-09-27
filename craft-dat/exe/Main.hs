@@ -16,8 +16,9 @@ import Temple.Dat.Entry
 import Temple.Dat.Tree
 
 data Action
-  = List
+  = Discern
   { _verbose :: Bool
+  , _check :: Bool
   , _out :: Maybe FilePath
   , _in :: FilePath
   }
@@ -74,17 +75,23 @@ verb = switch
     <> short 'v'
     <> help "Enable verbose mode"
 
+check :: Parser Bool
+check = switch
+      $ long "check"
+     <> short 'C'
+     <> help "Validate checksums of a craft-dat created file"
+
 disjoin :: ParserInfo Action
 disjoin = info ex desc
   where
   ex = Disjoin <$> verb <*> dirOpt <*> fileArg
   desc = progDesc "Extract the contents of a Troika DAT file"
 
-list :: ParserInfo Action
-list = info li desc
+discern :: ParserInfo Action
+discern = info li desc
   where
-  li = List <$> verb <*> dirOpt <*> fileArg
-  desc = progDesc "List the contents of a Troika DAT file"
+  li = Discern <$> verb <*> check <*> dirOpt <*> fileArg
+  desc = progDesc "List/check the contents of a Troika DAT file"
 
 fabricate :: ParserInfo Action
 fabricate = info fa desc
@@ -96,39 +103,39 @@ act :: ParserInfo Action
 act = info (cmd <**> helper) desc
   where
   cmd = hsubparser
-      $ command "list" list
+      $ command "discern" discern
      <> command "disjoin" disjoin
      <> command "fabricate" fabricate
   desc = fullDesc
-      <> progDesc "Extract or list the contents of a Troika DAT file"
+      <> progDesc "Manipulate Troika DAT files"
       <> header "Craft (DAT)"
 
 main :: IO ()
 main = customExecParser p act >>= \case
-  List v (fromMaybe "." -> dir) file -> do
-    (h, version, tree) <- prime v file
-    hClose h
-    for_ version \uuid -> putStr "DAT id: " *> print uuid *> putStrLn ""
-    putStrLn $ displayDirectoryTree dir tree
-  Disjoin v (fromMaybe "." -> dir) file -> do
-    (h, version, tree) <- prime v file
-    when v $ for_ version \uuid ->
-      putStr "DAT id: " *> print uuid *> putStrLn ""
-    when v $ hPutStr stderr "Extracting files\n"
-    extractFromHandle h dir tree
-    hClose h
-  Fabricate _v mguid mout dir -> withFile out WriteMode \h -> do
-    dt <- buildFromDirectory dir
-    et <- compressAndNumber h dt
-    compSz <- hTell h
-    let preLoc = compSz + 4
-    BU.hPutBuilder h . BU.word32LE $ fromIntegral preLoc
-    namesSize <- writeEntries h $ snd <$> flattenTree et
-    postLoc <- hTell h
-    let tableSize = fromIntegral $ postLoc - preLoc + 28
-    writeFooter h =<< footer tableSize namesSize mguid
+  Discern v ck (fromMaybe "." -> dir) file ->
+    prime v file \h version tree -> do
+      for_ version \uuid ->
+        putStr "DAT id: " *> print uuid *> putStrLn ""
+      displayDirectoryTree (guard ck *> pure h) dir tree
+  Disjoin v (fromMaybe "." -> dir) file ->
+    prime v file \h version tree -> do
+      when v $ for_ version \uuid ->
+        putStr "DAT id: " *> print uuid *> putStrLn ""
+      when v $ hPutStr stderr "Extracting files\n"
+      extractFromHandle h dir tree
+  Fabricate _v mguid mout dir ->
+    withFile out WriteMode \h -> do
+      dt <- buildFromDirectory dir
+      et <- compressAndNumber h dt
+      compSz <- hTell h
+      let preLoc = compSz + 4
+      BU.hPutBuilder h . BU.word32LE $ fromIntegral preLoc
+      namesSize <- writeEntries h $ snd <$> flattenTree et
+      postLoc <- hTell h
+      let tableSize = fromIntegral $ postLoc - preLoc + 28
+      writeFooter h =<< footer tableSize namesSize mguid
     where
-    out = fromMaybe (dir <.> "dat") mout
+    out = fromMaybe (dropTrailingPathSeparator dir <.> "dat") mout
   where
   p = prefs $ showHelpOnEmpty <> subparserInline
 
@@ -140,9 +147,9 @@ main = customExecParser p act >>= \case
 -- embedded directory tree.
 prime :: Bool
       -> FilePath
-      -> IO (Handle, Maybe UUID, DirectoryTree () FileInfo)
-prime verbose file = do
-  h <- openFile file ReadMode
+      -> (Handle -> Maybe UUID -> DirectoryTree () FileInfo -> IO r)
+      -> IO r
+prime verbose file k = withFile file ReadMode \h -> do
   hSeek h SeekFromEnd (-12)
   foot <- readFooter h
   hSeek h SeekFromEnd . negate . fromIntegral $ tableOffset foot
@@ -150,5 +157,5 @@ prime verbose file = do
   entries <- getEntries h . fromIntegral $ tableOffset foot
   when verbose $ hPutStr stderr "Building directory tree\n"
   tree <- evaluate $ buildDirectoryTree entries
-  pure (h, version foot, tree)
+  k h (version foot) tree
 
