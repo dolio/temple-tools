@@ -17,6 +17,7 @@ import Data.Bitraversable
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 qualified as C8
 import Data.ByteString.Lazy qualified as L
+import Data.Digest.CRC32
 import Data.HashMap.Strict as HM
 import Data.HashSet qualified as HS
 import Data.List (mapAccumR)
@@ -33,10 +34,15 @@ import Temple.Dat.Entry qualified as E
 data FileInfo
   = FI
   { compressed :: Bool -- whether the archived bytes are compressed
+  , misc     :: Word32 -- extra data
   , fullSize :: Word32 -- original file size
   , packSize :: Word32 -- size in the archvie
   , offset   :: Word32 -- starting location of the archived bytes
   }
+
+entryToFileInfo :: Entry -> FileInfo
+entryToFileInfo e =
+  FI (E.isCompressed e) (E.misc e) (E.fullSize e) (E.packSize e) (E.offset e)
 
 -- A path in a directory tree is a sequence of directory names
 type Path = [ByteString]
@@ -96,8 +102,7 @@ insert0 (p:ps) nm v (Branch u chl) = Branch u $ HM.alter f p chl
 treeFromEntry :: Entry -> DirectoryTree () FileInfo
 treeFromEntry e
   | E.isDirectory e = emptyDirs
-  | otherwise =
-    File $ FI (E.isCompressed e) (E.fullSize e) (E.packSize e) (E.offset e)
+  | otherwise = File $ entryToFileInfo e
 
 -- Main worker for building a `DirectoryTree` from a list of numbered
 -- `Entry` values.
@@ -175,7 +180,9 @@ extractFromHandle h = descend where
   descend name (Branch _ ds) = do
     createDirectoryIfMissing True name
     withCurrentDirectory name $ foldMapWithKey (descend . C8.unpack) ds
-  descend name (File f) = getFileData h f >>= L.writeFile name
+  descend name (File f) = do
+    bs <- getFileData h f
+    L.writeFile name bs
 
 -- Builds a directory tree representing the directories below a specified
 -- directory.
@@ -205,11 +212,13 @@ compressAndNumber h dt = evalStateT (bitraverse d f dt) (-1) where
   f path = StateT \n -> do
     bs <- L.readFile path
     let fsz = fromIntegral $ L.length bs
-        cs = compress bs
+        cparms = defaultCompressParams {compressLevel = bestCompression}
+        cs = compressWith cparms bs
         psz = fromIntegral $ L.length cs
+        CRC32 cks = digest $ L.toStrict bs
     off <- fromIntegral <$> hTell h
     L.hPut h cs
-    pure ((n, FI True fsz psz off), n+1)
+    pure ((n, FI True cks fsz psz off), n+1)
 
 rootNumber :: DirectoryTree n (n, file) -> n
 rootNumber (File (n, _)) = n
@@ -218,7 +227,7 @@ rootNumber (Branch n _) = n
 type EntryTree = DirectoryTree Word32 (Word32, FileInfo)
 
 swizzle
-  :: HM.HashMap ByteString EntryTree
+  :: HashMap ByteString EntryTree
   -> (Word32, [(ByteString, Word32, EntryTree)])
 swizzle = mapAccumR thread (-1) . HM.toList
   where thread next (name, dt) = (rootNumber dt, (name, next, dt))
@@ -234,11 +243,11 @@ flattenTree (Branch n (swizzle -> (_, bs))) = flats n bs
 
   flat parent name next = \case
     File (n, FI {..}) ->
-      [(n, E.EN name attrs fullSize packSize offset parent 0 next)]
+      [(n, E.EN name misc attrs fullSize packSize offset parent 0 next)]
       where
       attrs = if compressed then 0x2 else 0
     Branch n (swizzle -> (first, bs)) ->
-      (n, E.EN name attrs 0 0 0 parent first next) : flats n bs
+      (n, E.EN name 0 attrs 0 0 0 parent first next) : flats n bs
       where
       attrs = 0x400 -- directory
 

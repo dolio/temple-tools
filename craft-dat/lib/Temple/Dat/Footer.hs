@@ -9,6 +9,7 @@ import Data.Bits
 import Data.ByteString
 import Data.Serialize.Get
 import Data.Serialize.Put
+import Data.Traversable (for)
 import Data.UUID
 import Data.UUID.V4
 import Data.Word
@@ -17,29 +18,30 @@ import System.IO
 -- Footer infor for a DAT file. The footer specifies the DAT version and a
 -- file offset for the entries table. Version 1 also has a GUID, but we
 -- don't actually care.
-data Footer
+data Footer g
   = FO
-  { tableOffset :: Word32 -- ^ offset of the entries table
-  , version :: Maybe UUID -- ^ DAT file version indicator with GUID
-  }
+  { tableOffset :: Word32  -- ^ offset of the entries table
+  , namesSize   :: Word32  -- ^ total size of the names in the entries table
+  , version     :: Maybe g -- ^ DAT file version indicator with GUID
+  } deriving (Functor, Foldable, Traversable)
 
 -- If you made a Word32 with bytes to spell "DAT " or "DAT1", then encoded it
 -- little endian, this is what you'd see.
-detectVersion :: ByteString -> Get Word32
-detectVersion " TAD" = pure 0
-detectVersion "1TAD" = pure 1
+detectVersion :: ByteString -> Get (Maybe ())
+detectVersion " TAD" = pure Nothing
+detectVersion "1TAD" = pure (Just ())
 detectVersion _ = fail "unrecognized DAT version"
 
 -- cereal parser for `Footer`, needs 12 bytes
-getFooterInfo :: Get (Word32, Word32)
+getFooterInfo :: Get (Footer ())
 getFooterInfo = do
   -- First four bytes indicate the format version.
-  ver <- detectVersion =<< getByteString 4
+  version <- detectVersion =<< getByteString 4
   -- ignored/unknown
-  getWord32host
+  namesSize <- getWord32host
   -- Offset of the file entries table
-  off <- getWord32le
-  pure (ver, off)
+  tableOffset <- getWord32le
+  pure $ FO {..}
 
 getGUID :: Get UUID
 getGUID = fromWords64 <$> getScramble <*> getWord64be
@@ -67,31 +69,28 @@ disassemble u =
 
 -- Read a `Footer` from a `Handle` at the correct position. In a DAT file, the
 -- footer is the last 12 bytes of the file.
-readFooter :: Handle -> IO Footer
+readFooter :: Handle -> IO (Footer UUID)
 readFooter h = hGet h 12 >>= \bs -> case runGet getFooterInfo bs of
   Left msg -> fail msg
-  Right (0, off) -> pure $ FO off Nothing
-  Right (1, off) -> do
-    hSeek h RelativeSeek (-28)
-    bs <- hGet h 16
-    case runGet getGUID bs of
-      Left msg -> fail msg
-      Right guid -> pure $ FO off (Just guid)
-  Right _ -> fail "Unrecognized DAT version"
+  Right foot ->
+    -- read the GUID if version 1
+    for foot $ \() -> do
+      hSeek h RelativeSeek (-28)
+      bs <- hGet h 16
+      case runGet getGUID bs of
+        Left msg -> fail msg
+        Right guid -> pure guid
 
-putFooter :: Footer -> Put
-putFooter (FO off (Just guid)) = do
-  putGUID guid
-  putByteString "1TAD"
-  putWord32le 0
-  putWord32le off
-putFooter (FO off Nothing) = do
-  putByteString " TAD"
-  putWord32le 0
-  putWord32le off
+putFooter :: Footer UUID -> Put
+putFooter (FO {..}) = do
+  case version of
+    Nothing -> putByteString " TAD"
+    Just guid -> putGUID guid *> putByteString "1TAD"
+  putWord32le namesSize
+  putWord32le tableOffset
 
-writeFooter :: Handle -> Footer -> IO ()
+writeFooter :: Handle -> Footer UUID -> IO ()
 writeFooter h f = hPut h . runPut $ putFooter f
 
-createFooter :: Word32 -> IO Footer
-createFooter off = FO off . Just <$> nextRandom
+createFooter :: Word32 -> Word32 -> IO (Footer UUID)
+createFooter off size = FO off size . Just <$> nextRandom

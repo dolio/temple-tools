@@ -9,7 +9,6 @@ module Temple.Dat.Entry
 import Control.Monad
 import Data.Bits ((.&.))
 import Data.ByteString as B
-import Data.Foldable (traverse_)
 import Data.Serialize.Get
 import Data.Serialize.Put
 import Data.Word
@@ -19,6 +18,7 @@ import System.IO
 data Entry
   = EN
   { name :: ByteString    -- file name
+  , misc :: Word32        -- extra field, normally garbage data
   , attributes :: Word32  -- some attributes 0x400 directory, 0x2 compressed
   , fullSize :: Word32    -- original size on disk
   , packSize :: Word32    -- size in archive
@@ -51,7 +51,9 @@ parseEntry = do
     fail "entry name too short"
   name <- getByteString . fromIntegral $ nameLength - 1
   guard . (== 0) =<< getWord8 -- null terminator
-  getWord32le -- ignored
+  -- Apparently the pointer to the name in the dat creator. They must have
+  -- written the name and then just dumped the entry struct.
+  misc <- getWord32le
   -- remainder of structure
   attributes <- getWord32le
   fullSize <- getWord32le
@@ -76,12 +78,13 @@ getEntries h sz = hGet h sz >>= \bs -> case runGet parseEntries bs of
   Left msg -> fail msg
   Right es -> pure es
 
-putEntry :: Entry -> Put
+putEntry :: Entry -> PutM Word32
 putEntry (EN {..}) = do
-  putWord32le (fromIntegral $ B.length name + 1)
+  let sz = fromIntegral $ B.length name + 1
+  putWord32le sz
   putByteString name
   putWord8 0 -- null terminator
-  putWord32le 0
+  putWord32le misc
   putWord32le attributes
   putWord32le fullSize
   putWord32le packSize
@@ -89,11 +92,18 @@ putEntry (EN {..}) = do
   putWord32le parent
   putWord32le firstChild
   putWord32le nextSibling
+  pure sz
 
-putEntries :: [Entry] -> Put
+putEntries :: [Entry] -> PutM Word32
 putEntries es = do
   putWord32le (fromIntegral $ Prelude.length es)
-  traverse_ putEntry es
+  puts 0 es
+  where
+  puts !acc [] = pure acc
+  puts !acc (e:es) =
+    putEntry e >>= \n -> puts (n+acc) es
 
-writeEntries :: Handle -> [Entry] -> IO ()
-writeEntries h es = hPut h . runPut $ putEntries es
+writeEntries :: Handle -> [Entry] -> IO Word32
+writeEntries h es
+  | (namesSize, bs) <- runPutM (putEntries es)
+  = namesSize <$ hPut h bs

@@ -2,19 +2,43 @@ module Main (main) where
 
 import Control.Exception
 import Control.Monad
+import Data.Foldable (for_)
 import Data.Maybe (fromMaybe)
+import Data.ByteString.Builder qualified as BU
+import Data.UUID
 import Options.Applicative
 import System.FilePath
 import System.IO
+import Text.Read
 
 import Temple.Dat.Footer
 import Temple.Dat.Entry
 import Temple.Dat.Tree
 
 data Action
-  = List { _verbose :: Bool, _out :: Maybe FilePath, _in :: FilePath }
-  | Disjoin { _verbose :: Bool, _out :: Maybe FilePath, _in :: FilePath }
-  | Fabricate { _verbose :: Bool, _out :: Maybe FilePath, _in :: FilePath }
+  = List
+  { _verbose :: Bool
+  , _out :: Maybe FilePath
+  , _in :: FilePath
+  }
+  | Disjoin
+  { _verbose :: Bool
+  , _out :: Maybe FilePath
+  , _in :: FilePath
+  }
+  | Fabricate
+  { _verbose :: Bool
+  , _guid :: Maybe UUID
+  , _out :: Maybe FilePath
+  , _in :: FilePath
+  }
+
+guidOpt :: Parser (Maybe UUID)
+guidOpt = option (maybeReader $ fmap Just . readMaybe)
+        $ long "guid"
+       <> short 'G'
+       <> metavar "GUID"
+       <> value Nothing
 
 dirOpt :: Parser (Maybe FilePath)
 dirOpt = option (maybeReader $ Just . Just)
@@ -65,7 +89,7 @@ list = info li desc
 fabricate :: ParserInfo Action
 fabricate = info fa desc
   where
-  fa = Fabricate <$> verb <*> outOpt <*> dirArg
+  fa = Fabricate <$> verb <*> guidOpt <*> outOpt <*> dirArg
   desc = progDesc "Create a Troika DAT file from a directory"
 
 act :: ParserInfo Action
@@ -82,29 +106,41 @@ act = info (cmd <**> helper) desc
 main :: IO ()
 main = customExecParser p act >>= \case
   List v (fromMaybe "." -> dir) file -> do
-    (h, tree) <- prime v file
+    (h, version, tree) <- prime v file
     hClose h
+    for_ version \uuid -> putStr "DAT id: " *> print uuid *> putStrLn ""
     putStrLn $ displayDirectoryTree dir tree
   Disjoin v (fromMaybe "." -> dir) file -> do
-    (h, tree) <- prime v file
+    (h, version, tree) <- prime v file
+    when v $ for_ version \uuid ->
+      putStr "DAT id: " *> print uuid *> putStrLn ""
     when v $ hPutStr stderr "Extracting files\n"
     extractFromHandle h dir tree
     hClose h
-  Fabricate _v mout dir -> withFile out WriteMode \h -> do
+  Fabricate _v mguid mout dir -> withFile out WriteMode \h -> do
     dt <- buildFromDirectory dir
     et <- compressAndNumber h dt
-    preLoc <- hTell h
-    writeEntries h $ snd <$> flattenTree et
+    compSz <- hTell h
+    let preLoc = compSz + 4
+    BU.hPutBuilder h . BU.word32LE $ fromIntegral preLoc
+    namesSize <- writeEntries h $ snd <$> flattenTree et
     postLoc <- hTell h
-    writeFooter h =<< createFooter (fromIntegral $ postLoc - preLoc + 28)
+    let tableSize = fromIntegral $ postLoc - preLoc + 28
+    writeFooter h =<< footer tableSize namesSize mguid
     where
     out = fromMaybe (dir <.> "dat") mout
   where
   p = prefs $ showHelpOnEmpty <> subparserInline
 
+  footer off size = \case
+    Nothing -> createFooter off size
+    Just guid -> pure $ FO off size (Just guid)
+
 -- Common setup for both dat-input commands, opens a file and constructs the
 -- embedded directory tree.
-prime :: Bool -> FilePath -> IO (Handle, DirectoryTree () FileInfo)
+prime :: Bool
+      -> FilePath
+      -> IO (Handle, Maybe UUID, DirectoryTree () FileInfo)
 prime verbose file = do
   h <- openFile file ReadMode
   hSeek h SeekFromEnd (-12)
@@ -114,5 +150,5 @@ prime verbose file = do
   entries <- getEntries h . fromIntegral $ tableOffset foot
   when verbose $ hPutStr stderr "Building directory tree\n"
   tree <- evaluate $ buildDirectoryTree entries
-  pure (h, tree)
+  pure (h, version foot, tree)
 
