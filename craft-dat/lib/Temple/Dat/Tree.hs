@@ -253,11 +253,13 @@ compressAndNumber h dt = evalStateT (bitraverse d f dt) (-1) where
     let fsz = fromIntegral $ L.length bs
         cparms = defaultCompressParams {compressLevel = bestCompression}
         cs = compressWith cparms bs
+        -- only compress if it actually decreases the size
+        compr = L.length cs < L.length bs
         psz = fromIntegral $ L.length cs
         CRC32 cks = digest $ L.toStrict bs
     off <- fromIntegral <$> hTell h
-    L.hPut h cs
-    pure ((n, FI True cks fsz psz off), n+1)
+    L.hPut h (if compr then cs else bs)
+    pure ((n, FI compr cks fsz (min fsz psz) off), n+1)
 
 rootNumber :: DirectoryTree n (n, file) -> n
 rootNumber (File (n, _)) = n
