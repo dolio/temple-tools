@@ -17,9 +17,10 @@ import Data.Bitraversable
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 qualified as C8
 import Data.ByteString.Lazy qualified as L
+import Data.Char (toLower)
 import Data.Digest.CRC32
-import Data.HashMap.Strict as HM
-import Data.HashSet qualified as HS
+import Data.Map.Strict as M
+import Data.Set qualified as S
 import Data.List (mapAccumR, intercalate)
 import Data.Traversable (for)
 import Data.Word
@@ -40,6 +41,25 @@ data FileInfo
   , offset   :: Word32 -- starting location of the archived bytes
   }
 
+data UncasedString = US { orig :: ByteString, lower :: ByteString }
+
+packUncase :: String -> UncasedString
+packUncase = uncase . C8.pack
+
+uncase :: ByteString -> UncasedString
+uncase orig = US {..}
+  where lower = C8.map toLower orig
+
+unpackOrig :: UncasedString -> String
+unpackOrig = C8.unpack . orig
+
+instance Eq UncasedString where
+  l == r = lower l == lower r
+  l /= r = lower l /= lower r
+
+instance Ord UncasedString where
+  compare l r = compare (lower l) (lower r)
+
 entryToFileInfo :: Entry -> FileInfo
 entryToFileInfo e =
   FI (E.isCompressed e) (E.misc e) (E.fullSize e) (E.packSize e) (E.offset e)
@@ -55,12 +75,12 @@ type Path = [ByteString]
 -- of the tree.
 data DirectoryTree dir file
   = File file
-  | Branch dir (HashMap ByteString (DirectoryTree dir file))
+  | Branch dir (Map UncasedString (DirectoryTree dir file))
   deriving (Functor)
 
 instance Bifunctor DirectoryTree where
   bimap _ g (File x) = File (g x)
-  bimap f g (Branch x subs) = Branch (f x) (HM.map (bimap f g) subs)
+  bimap f g (Branch x subs) = Branch (f x) (M.map (bimap f g) subs)
 
 instance Bifoldable DirectoryTree where
   bifoldMap _ g (File x) = g x
@@ -77,8 +97,8 @@ emptyDirs = Branch () empty
 -- Essentially the analogue of `mkdir -p`, creates a multi-level directory
 -- tree for the specified non-empty path.
 build0 :: Path -> ByteString -> DirectoryTree () file -> DirectoryTree () file
-build0 [    ] nm = Branch () . HM.singleton nm
-build0 (p:ps) nm = Branch () . HM.singleton p . build0 ps nm
+build0 [    ] nm = Branch () . M.singleton (uncase nm)
+build0 (p:ps) nm = Branch () . M.singleton (uncase p) . build0 ps nm
 
 -- Inserts a child tree at the specified non-empty path in a parent tree.
 -- Overwrites anything that is already at that position.
@@ -91,8 +111,8 @@ insert0
 insert0  _     nm _ (File _) = error msg
   where
   msg = "bad DAT: nested under file: " ++ "/" ++ C8.unpack nm
-insert0 [    ] nm v (Branch u chl) = Branch u $ HM.insert nm v chl
-insert0 (p:ps) nm v (Branch u chl) = Branch u $ HM.alter f p chl
+insert0 [    ] nm v (Branch u chl) = Branch u $ M.insert (uncase nm) v chl
+insert0 (p:ps) nm v (Branch u chl) = Branch u $ M.alter f (uncase p) chl
   where
   f Nothing = Just $ build0 ps nm v
   f (Just tr) = Just $ insert0 ps nm v tr
@@ -107,7 +127,7 @@ treeFromEntry e
 -- Main worker for building a `DirectoryTree` from a list of numbered
 -- `Entry` values.
 --
--- ps :: HashMap Word32 Path
+-- ps :: Map Word32 Path
 --   a mapping from entry numbers to their full path in the directory tree
 --
 -- acc :: DirectoryTree
@@ -129,7 +149,7 @@ treeFromEntry e
 -- Also note: the root level is -1, so `ps` should be bootstrapped with
 -- an initial value for that.
 consume
-  :: HashMap Word32 Path
+  :: Map Word32 Path
   -> DirectoryTree () FileInfo
   -> [(Word32, Entry)]
   -> [(Word32, Entry)]
@@ -139,21 +159,21 @@ consume ps acc os [           ] = consume ps acc [] $ reverse os
 consume ps acc os (ne@(n,e):es)
   -- Refuse to work with a DAT if the file names look weird, like they're
   -- absolute paths or something.
-  | C8.any (`HS.member` badChars) $ E.name e =
+  | C8.any (`S.member` badChars) $ E.name e =
       error $ "bad file name in dat: " ++ C8.unpack (E.name e)
-  | otherwise = case HM.lookup (E.parent e) ps of
+  | otherwise = case M.lookup (E.parent e) ps of
   Just path
     | ps <- insert n (path ++ [E.name e]) ps ->
     consume ps (insert0 path (E.name e) (treeFromEntry e) acc) os es
   Nothing ->
     consume ps acc (ne:os) es
   where
-  badChars = HS.fromList "\\/:"
+  badChars = S.fromList "\\/:"
 
 -- Creates a nested directory tree from a list of entry information.
 buildDirectoryTree :: [Entry] -> DirectoryTree () FileInfo
 buildDirectoryTree = consume root emptyDirs [] . zip [0..]
-  where root = HM.singleton (-1) []
+  where root = M.singleton (-1) []
 
 -- Displays a directory structure as a complete listing. If a handle is
 -- provided, it will be used to check CRCs of files presumed to be in the
@@ -184,7 +204,7 @@ displayDirectoryTree mh root d0 = descend (showString root) d0
     putStrLn $ path "/"
     foldMapWithKey f ds
     where
-    f p dt = descend (path . showString "/" . showString (C8.unpack p)) dt
+    f p dt = descend (path . showString "/" . showString (unpackOrig p)) dt
 
 getFileData :: Handle -> FileInfo -> IO L.ByteString
 getFileData h f = do
@@ -198,7 +218,7 @@ extractFromHandle :: Handle -> FilePath -> DirectoryTree () FileInfo -> IO ()
 extractFromHandle h = descend where
   descend name (Branch _ ds) = do
     createDirectoryIfMissing True name
-    withCurrentDirectory name $ foldMapWithKey (descend . C8.unpack) ds
+    withCurrentDirectory name $ foldMapWithKey (descend . unpackOrig) ds
   descend name (File f) = do
     bs <- getFileData h f
     L.writeFile name bs
@@ -211,8 +231,8 @@ buildFromDirectory root =
     True -> do
       subs <- listDirectory root
       assocs <- for subs \sub ->
-        (C8.pack sub,) <$> buildFromDirectory (root </> sub)
-      pure . Branch () $ HM.fromList assocs
+        (packUncase sub,) <$> buildFromDirectory (root </> sub)
+      pure . Branch () $ M.fromList assocs
     False -> doesFileExist root >>= \case
       True -> pure $ File root
       False -> error "buildFromDirectory: bad file argument"
@@ -246,10 +266,10 @@ rootNumber (Branch n _) = n
 type EntryTree = DirectoryTree Word32 (Word32, FileInfo)
 
 swizzle
-  :: HashMap ByteString EntryTree
+  :: Map UncasedString EntryTree
   -> (Word32, [(ByteString, Word32, EntryTree)])
-swizzle = mapAccumR thread (-1) . HM.toList
-  where thread next (name, dt) = (rootNumber dt, (name, next, dt))
+swizzle = mapAccumR thread (-1) . M.toList
+  where thread next (name, dt) = (rootNumber dt, (orig name, next, dt))
 
 uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
 uncurry3 f (x, y, z) = f x y z
