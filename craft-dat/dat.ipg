@@ -72,7 +72,12 @@ function process_entry(i, entry, data) {
 %preamble_end
 
 DAT ->
-  Entries(Footer.table_size)
+  // Data before this is the (possibly compressed) file data. It can
+  // probably contain arbitrary other data, as well, similar to a zip file.
+
+  // total number of bytes preceding the entry table, _including_ this U32
+  U32 { pre_table_size = U32.value }
+  Entries(Footer.table_offset)
   { entries = Entries.entries }
   GUID(Footer.version)[Footer.START - 16, Footer.START]
     { guid = GUID.value }
@@ -81,8 +86,8 @@ DAT ->
 
 Footer ->
   Signature { version = Signature.version }
-  U32
-  U32 { table_size = U32.value };
+  U32 { names_size = U32.value } // total size of names in Entries
+  U32 { table_offset = U32.value };
 
 rule GUID(version : Int);
 GUID(version)
@@ -103,9 +108,9 @@ FileTable ->
   U32 { num_entries = U32.value }
   repeat Entry.this {entries = values};
 
-rule Entries(table_size : Int);
-Entries(table_size) ->
-  U32[EOI - table_size, EOI - table_size + 4]
+rule Entries(table_offset : Int);
+Entries(table_offset) ->
+  U32[EOI - table_offset, EOI - table_offset + 4]
   { num_entries = U32.value }
   repeat Entry.this
   { entries = values }
@@ -116,8 +121,8 @@ Entry ->
   U32
   EntryName[U32.value]
   { name = decode_ascii(EntryName.name) }
-  U32 // useless
-  U32 { attributes = U32.value }
+  U32 // probably original pointer to name
+  U32 { attributes = U32.value } // 0x400 directory, 0x2 compressed
   U32 { original_size = U32.value }
   U32 { archived_size = U32.value }
   U32 { data_start = U32.value }
