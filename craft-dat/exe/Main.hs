@@ -116,7 +116,7 @@ main = customExecParser p act >>= \case
     prime v file \h version tree -> do
       for_ version \uuid ->
         putStr "DAT id: " *> print uuid *> putStrLn ""
-      displayDirectoryTree (guard ck *> pure h) dir tree
+      displayDirectoryTree (guard ck *> pure h) (BU.string8 dir) tree
   Disjoin v (fromMaybe "." -> dir) file ->
     prime v file \h version tree -> do
       when v $ for_ version \uuid ->

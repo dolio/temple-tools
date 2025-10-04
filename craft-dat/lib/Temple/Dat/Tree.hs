@@ -17,10 +17,12 @@ import Data.Bitraversable
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 qualified as C8
 import Data.ByteString.Lazy qualified as L
+import Data.ByteString.Builder (Builder)
+import Data.ByteString.Builder qualified as BU
 import Data.Char (toLower)
 import Data.Digest.CRC32
 import Data.Map.Strict as M hiding ((!?))
-import Data.List (mapAccumR, intercalate)
+import Data.List (mapAccumR, intersperse)
 import Data.Primitive.Array (Array, arrayFromList, indexArray, sizeofArray)
 import Data.Traversable (for)
 import Data.Word
@@ -40,14 +42,14 @@ a !? (fromIntegral -> i)
 -- Information for an archived file.
 data FileInfo
   = FI
-  { compressed :: Bool -- whether the archived bytes are compressed
-  , misc     :: Word32 -- extra data
-  , fullSize :: Word32 -- original file size
-  , packSize :: Word32 -- size in the archvie
-  , offset   :: Word32 -- starting location of the archived bytes
+  { compressed :: !Bool -- whether the archived bytes are compressed
+  , misc     :: !Word32 -- extra data
+  , fullSize :: !Word32 -- original file size
+  , packSize :: !Word32 -- size in the archvie
+  , offset   :: !Word32 -- starting location of the archived bytes
   }
 
-data UncasedString = US { orig :: ByteString, lower :: ByteString }
+data UncasedString = US { orig :: !ByteString, lower :: !ByteString }
 
 packUncase :: String -> UncasedString
 packUncase = uncase . C8.pack
@@ -115,19 +117,22 @@ crawlRight es e = (key, tree) : case es !? E.nextSibling e of
 -- information on child/sibling entries, and assumes they correspond to the
 -- positions in the list.
 buildDirectoryTree :: [Entry] -> DirectoryTree () FileInfo
-buildDirectoryTree (arrayFromList -> es) = case es !? 0 of
+buildDirectoryTree (arrayFromList -> !es) = case es !? 0 of
   Nothing -> emptyDirs
   Just e -> Branch () . M.fromList $ crawlRight es e
+
+intercalateMap :: Builder -> (a -> Builder) -> [a] -> Builder
+intercalateMap mid f = mconcat . intersperse mid . fmap f
 
 -- Displays a directory structure as a complete listing. If a handle is
 -- provided, it will be used to check CRCs of files presumed to be in the
 -- 'misc' field.
 displayDirectoryTree ::
-  Maybe Handle -> String -> DirectoryTree () FileInfo -> IO ()
-displayDirectoryTree mh root d0 = descend (showString root) d0
+  Maybe Handle -> Builder -> DirectoryTree () FileInfo -> IO ()
+displayDirectoryTree mh root d0 = descend root d0
   where
   dispInfo [] = ""
-  dispInfo is = " (" ++ intercalate ", " is ++ ")"
+  dispInfo is = " (" <> intercalateMap ", " BU.byteString is <> ")"
 
   compInfo fi = if compressed fi then ["compressed"] else []
 
@@ -140,15 +145,17 @@ displayDirectoryTree mh root d0 = descend (showString root) d0
       else pure $ compInfo fi ++ ["checksum mismatch"]
     | otherwise = pure . compInfo
 
-  descend :: ShowS -> DirectoryTree () FileInfo -> IO ()
+  descend :: Builder -> DirectoryTree () FileInfo -> IO ()
   descend path (File f) = do
     finf <- fileInfo f
-    putStrLn . path $ dispInfo finf
+    BU.hPutBuilder stdout $ path <> dispInfo finf
+    putStrLn ""
   descend path (Branch _ ds) = do
-    putStrLn $ path "/"
+    BU.hPutBuilder stdout path
+    putStrLn "/"
     foldMapWithKey f ds
     where
-    f p dt = descend (path . showString "/" . showString (unpackOrig p)) dt
+    f p dt = descend (path <> "/" <> BU.byteString (orig p)) dt
 
 getFileData :: Handle -> FileInfo -> IO L.ByteString
 getFileData h f = do

@@ -17,15 +17,15 @@ import System.IO
 -- File table entry data for a DAT archive.
 data Entry
   = EN
-  { name :: ByteString    -- file name
-  , misc :: Word32        -- extra field, normally garbage data
-  , attributes :: Word32  -- some attributes 0x400 directory, 0x2 compressed
-  , fullSize :: Word32    -- original size on disk
-  , packSize :: Word32    -- size in archive
-  , offset :: Word32      -- offset in archive file
-  , parent :: Word32      -- parent entry
-  , firstChild :: Word32  -- first child entry
-  , nextSibling :: Word32 -- next sibling entry
+  { name    :: !ByteString -- file name
+  , misc        :: !Word32 -- extra field, normally garbage data
+  , attributes  :: !Word32 -- some attributes 0x400 directory, 0x2 compressed
+  , fullSize    :: !Word32 -- original size on disk
+  , packSize    :: !Word32 -- size in archive
+  , offset      :: !Word32 -- offset in archive file
+  , parent      :: !Word32 -- parent entry
+  , firstChild  :: !Word32 -- first child entry
+  , nextSibling :: !Word32 -- next sibling entry
   } deriving (Show)
 
 -- Tests an entry's attributes against a mask
