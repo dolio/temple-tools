@@ -19,9 +19,9 @@ import Data.ByteString.Char8 qualified as C8
 import Data.ByteString.Lazy qualified as L
 import Data.Char (toLower)
 import Data.Digest.CRC32
-import Data.Map.Strict as M
-import Data.Set qualified as S
+import Data.Map.Strict as M hiding ((!?))
 import Data.List (mapAccumR, intercalate)
+import Data.Primitive.Array (Array, arrayFromList, indexArray, sizeofArray)
 import Data.Traversable (for)
 import Data.Word
 import System.Directory
@@ -30,6 +30,12 @@ import System.IO
 
 import Temple.Dat.Entry (Entry)
 import Temple.Dat.Entry qualified as E
+
+(!?) :: Array a -> Word32 -> Maybe a
+a !? (fromIntegral -> i)
+  | i < sizeofArray a = Just (indexArray a i)
+  | otherwise = Nothing
+{-# inline (!?) #-}
 
 -- Information for an archived file.
 data FileInfo
@@ -64,9 +70,6 @@ entryToFileInfo :: Entry -> FileInfo
 entryToFileInfo e =
   FI (E.isCompressed e) (E.misc e) (E.fullSize e) (E.packSize e) (E.offset e)
 
--- A path in a directory tree is a sequence of directory names
-type Path = [ByteString]
-
 -- A directory tree has files that are necessarily leaves, and directories
 -- that allow other trees to be nested below them. The name information for
 -- files is stored implicitly along the branching structure.
@@ -94,86 +97,27 @@ instance Bitraversable DirectoryTree where
 emptyDirs :: DirectoryTree () file
 emptyDirs = Branch () empty
 
--- Essentially the analogue of `mkdir -p`, creates a multi-level directory
--- tree for the specified non-empty path.
-build0 :: Path -> ByteString -> DirectoryTree () file -> DirectoryTree () file
-build0 [    ] nm = Branch () . M.singleton (uncase nm)
-build0 (p:ps) nm = Branch () . M.singleton (uncase p) . build0 ps nm
-
--- Inserts a child tree at the specified non-empty path in a parent tree.
--- Overwrites anything that is already at that position.
-insert0
-  :: Path
-  -> ByteString
-  -> DirectoryTree () file -- child tree
-  -> DirectoryTree () file -- parent tree
-  -> DirectoryTree () file
-insert0  _     nm _ (File _) = error msg
+crawlRight
+  :: Array Entry
+  -> Entry
+  -> [(UncasedString, DirectoryTree () FileInfo)]
+crawlRight es e = (key, tree) : case es !? E.nextSibling e of
+  Nothing -> []
+  Just e -> crawlRight es e
   where
-  msg = "bad DAT: nested under file: " ++ "/" ++ C8.unpack nm
-insert0 [    ] nm v (Branch u chl) = Branch u $ M.insert (uncase nm) v chl
-insert0 (p:ps) nm v (Branch u chl) = Branch u $ M.alter f (uncase p) chl
-  where
-  f Nothing = Just $ build0 ps nm v
-  f (Just tr) = Just $ insert0 ps nm v tr
+  key = uncase $ E.name e
+  tree | not $ E.isDirectory e = File $ entryToFileInfo e
+       | Just c <- es !? E.firstChild e =
+         Branch () . M.fromList $ crawlRight es c
+       | otherwise = emptyDirs
 
--- Creates a tree node from an entry. Directories are just empty branches,
--- while files copy some information.
-treeFromEntry :: Entry -> DirectoryTree () FileInfo
-treeFromEntry e
-  | E.isDirectory e = emptyDirs
-  | otherwise = File $ entryToFileInfo e
-
--- Main worker for building a `DirectoryTree` from a list of numbered
--- `Entry` values.
---
--- ps :: Map Word32 Path
---   a mapping from entry numbers to their full path in the directory tree
---
--- acc :: DirectoryTree
---   the directory tree we are building up
---
--- os :: [(Word32, Entry)]
---   Entries we weren't able to insert yet, because their parents weren't
---   in the directory tree. Seems like most archives are not designed to
---   required this.
---
--- es :: [(Word32, Entry)]
---   The list of entries yet to be processed.
---
--- Once we consume all of `es`, we restart with `os` and hope we've
--- inserted enough to process more of them. However, if there is a bad
--- directory structure with entries whose parents don't exist, this will
--- simply loop forever.
---
--- Also note: the root level is -1, so `ps` should be bootstrapped with
--- an initial value for that.
-consume
-  :: Map Word32 Path
-  -> DirectoryTree () FileInfo
-  -> [(Word32, Entry)]
-  -> [(Word32, Entry)]
-  -> DirectoryTree () FileInfo
-consume  _ acc [] [           ] = acc
-consume ps acc os [           ] = consume ps acc [] $ reverse os
-consume ps acc os (ne@(n,e):es)
-  -- Refuse to work with a DAT if the file names look weird, like they're
-  -- absolute paths or something.
-  | C8.any (`S.member` badChars) $ E.name e =
-      error $ "bad file name in dat: " ++ C8.unpack (E.name e)
-  | otherwise = case M.lookup (E.parent e) ps of
-  Just path
-    | ps <- insert n (path ++ [E.name e]) ps ->
-    consume ps (insert0 path (E.name e) (treeFromEntry e) acc) os es
-  Nothing ->
-    consume ps acc (ne:os) es
-  where
-  badChars = S.fromList "\\/:"
-
--- Creates a nested directory tree from a list of entry information.
+-- Creates a nested directory tree from a list of entries. This uses the
+-- information on child/sibling entries, and assumes they correspond to the
+-- positions in the list.
 buildDirectoryTree :: [Entry] -> DirectoryTree () FileInfo
-buildDirectoryTree = consume root emptyDirs [] . zip [0..]
-  where root = M.singleton (-1) []
+buildDirectoryTree (arrayFromList -> es) = case es !? 0 of
+  Nothing -> emptyDirs
+  Just e -> Branch () . M.fromList $ crawlRight es e
 
 -- Displays a directory structure as a complete listing. If a handle is
 -- provided, it will be used to check CRCs of files presumed to be in the
@@ -276,7 +220,7 @@ swizzle = mapAccumR thread (-1) . M.toList
 uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
 uncurry3 f (x, y, z) = f x y z
 
-flattenTree :: DirectoryTree Word32 (Word32, FileInfo) -> [(Word32, Entry)]
+flattenTree :: EntryTree -> [(Word32, Entry)]
 flattenTree (File _) = error "flattenTree: file root"
 flattenTree (Branch n (swizzle -> (_, bs))) = flats n bs
   where
