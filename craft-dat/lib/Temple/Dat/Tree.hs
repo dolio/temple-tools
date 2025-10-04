@@ -286,7 +286,7 @@ flattenTree (Branch n (swizzle -> (_, bs))) = flats n bs
     File (n, FI {..}) ->
       [(n, E.EN name misc attrs fullSize packSize offset parent 0 next)]
       where
-      attrs = if compressed then 0x2 else 0
+      attrs = if compressed then 0x2 else 0x1
     Branch n (swizzle -> (first, bs)) ->
       (n, E.EN name 0 attrs 0 0 0 parent first next) : flats n bs
       where
