@@ -33,6 +33,11 @@ data Action
   , _out :: Maybe FilePath
   , _in :: FilePath
   }
+  | Unite
+  { _guid :: Maybe UUID
+  , _comb :: FilePath
+  , _ins :: [FilePath]
+  }
 
 guidOpt :: Parser (Maybe UUID)
 guidOpt = option (maybeReader $ fmap Just . readMaybe)
@@ -58,6 +63,14 @@ outOpt = option (maybeReader $ Just . Just)
       <> help "Output file"
       <> value Nothing
       <> action "file"
+
+outOpt' :: Parser FilePath
+outOpt' = strOption
+        $ long "output"
+       <> short 'o'
+       <> metavar "FILE"
+       <> help "Output file"
+       <> action "file"
 
 fileArg :: Parser FilePath
 fileArg = strArgument
@@ -99,6 +112,13 @@ fabricate = info fa desc
   fa = Fabricate <$> verb <*> guidOpt <*> outOpt <*> dirArg
   desc = progDesc "Create a Troika DAT file from a directory"
 
+unite :: ParserInfo Action
+unite = info un desc
+  where
+  some2 p = (:) <$> p <*> some p
+  un = Unite <$> guidOpt <*> outOpt' <*> some2 fileArg
+  desc = progDesc "Combine multiple Troika DAT files (later take precedence)"
+
 act :: ParserInfo Action
 act = info (cmd <**> helper) desc
   where
@@ -106,6 +126,7 @@ act = info (cmd <**> helper) desc
       $ command "discern" discern
      <> command "disjoin" disjoin
      <> command "fabricate" fabricate
+     <> command "unite" unite
   desc = fullDesc
       <> progDesc "Manipulate Troika DAT files"
       <> header "Craft (DAT)"
@@ -121,41 +142,60 @@ main = customExecParser p act >>= \case
     prime v file \h version tree -> do
       when v $ for_ version \uuid ->
         putStr "DAT id: " *> print uuid *> putStrLn ""
-      when v $ hPutStr stderr "Extracting files\n"
+      when v $ hPutStrLn stderr "Extracting files"
       extractFromHandle h dir tree
   Fabricate _v mguid mout dir ->
-    withFile out WriteMode \h -> do
-      dt <- buildFromDirectory dir
-      et <- compressAndNumber h dt
-      compSz <- hTell h
-      let preLoc = compSz + 4
-      BU.hPutBuilder h . BU.word32LE $ fromIntegral preLoc
-      namesSize <- writeEntries h $ snd <$> flattenTree et
-      postLoc <- hTell h
-      let tableSize = fromIntegral $ postLoc - preLoc + 28
-      writeFooter h =<< footer tableSize namesSize mguid
+    withFile out WriteMode \h ->
+      writeEntryTree h mguid
+        =<< compressAndNumber h
+        =<< buildFromDirectory dir
     where
     out = fromMaybe (dropTrailingPathSeparator dir <.> "dat") mout
+  Unite mguid out ins ->
+    primes ins \his dts ->
+    withFile out WriteMode \ho ->
+      writeEntryTree ho mguid
+        =<< coalesceAndNumber his ho dts
   where
   p = prefs $ showHelpOnEmpty <> subparserInline
-
-  footer off size = \case
-    Nothing -> createFooter off size
-    Just guid -> pure $ FO off size (Just guid)
 
 -- Common setup for both dat-input commands, opens a file and constructs the
 -- embedded directory tree.
 prime :: Bool
       -> FilePath
-      -> (Handle -> Maybe UUID -> DirectoryTree () FileInfo -> IO r)
+      -> (Handle -> Maybe UUID -> BasicTree -> IO r)
       -> IO r
-prime verbose file k = withFile file ReadMode \h -> do
+prime verbose file k = withFile file ReadMode \h ->
+  initializeDat verbose h >>= uncurry (k h)
+
+primes :: [FilePath] -> ([Handle] -> DirectoryTrees -> IO r) -> IO r
+primes fs k = opens [] mempty fs where
+  opens hs ds [] = k (reverse hs) ds
+  opens hs ds (f:fs) =
+    prime False f \h _ t ->
+      opens (h:hs) (ds <> singleSource t) fs
+
+initializeDat :: Bool -> Handle -> IO (Maybe UUID, BasicTree)
+initializeDat verbose h = do
   hSeek h SeekFromEnd (-12)
   foot <- readFooter h
   hSeek h SeekFromEnd . negate . fromIntegral $ tableOffset foot
-  when verbose $ hPutStr stderr "Getting entries\n"
+  when verbose $ hPutStrLn stderr "Getting entries"
   entries <- getEntries h . fromIntegral $ tableOffset foot
-  when verbose $ hPutStr stderr "Building directory tree\n"
+  when verbose $ hPutStrLn stderr "Building directory tree"
   tree <- evaluate $ buildDirectoryTree entries
-  k h (version foot) tree
+  pure (version foot, tree)
 
+writeEntryTree :: Handle -> Maybe UUID -> EntryTree -> IO ()
+writeEntryTree h mguid et = do
+  compSz <- fromIntegral <$> hTell h
+  let preLoc = compSz + 4
+  BU.hPutBuilder h $ BU.word32LE preLoc
+  namesSize <- writeEntries h $ snd <$> flattenTree et
+  postLoc <- fromIntegral <$> hTell h
+  let tableOff = postLoc - preLoc + 28
+  writeFooter h =<< footer tableOff namesSize mguid
+  where
+  footer off size = \case
+    Nothing -> createFooter off size
+    Just guid -> pure $ FO off size (Just guid)

@@ -3,7 +3,7 @@
 ## Info
 
 This is an implementation of a quick-and-dirty extractor/creator for Troika
-DAT files. It has three modes, `discern`, `disjoin` and `fabricate`.
+DAT files. It has four modes, `discern`, `disjoin`, `fabricate` and `unite`.
 
 The `discern` mode simply lists the files stored in a DAT archive, showing the
 directories/files that _would_ be created in disjoin mode. Whether or not a
@@ -24,6 +24,12 @@ The `fabricate` mode is for creating archives. It takes a directory as an
 argument, and creates a DAT file containing the entire contents of that
 directory. An optional `-o` argument specifies the name of the archive to be
 created. By default, the directory name is used, but with `.dat` appended.
+
+The `unite` mode is for combining multiple archives into a single archive. It
+takes multiple input file arguments, and a single output file. A combined
+directory tree is constructed from the input files and used to copy data to
+the output. When files occur in multiple input archives, the version from the
+archive that occurs later on the command line is preferred.
 
 A `-v` switch will put the program into 'verbose' mode, which will print
 out some extra information while running in some modes.

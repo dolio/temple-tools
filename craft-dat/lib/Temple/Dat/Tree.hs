@@ -1,11 +1,16 @@
 module Temple.Dat.Tree
   ( FileInfo (..)
   , DirectoryTree (..)
+  , BasicTree
+  , EntryTree
   , buildDirectoryTree
   , displayDirectoryTree
   , extractFromHandle
   , buildFromDirectory
+  , DirectoryTrees (..)
+  , singleSource
   , compressAndNumber
+  , coalesceAndNumber
   , flattenTree
   ) where
 
@@ -98,6 +103,32 @@ instance Bitraversable DirectoryTree where
 
 emptyDirs :: DirectoryTree () file
 emptyDirs = Branch () empty
+
+type BasicTree = DirectoryTree () FileInfo
+
+-- This represents a combined directory structure from multiple DATs. Each
+-- node in the tree is annotated with which source it's from.
+data DirectoryTrees
+  = DTs
+  { sources :: !Int
+  , combined :: DirectoryTree () (Int, FileInfo)
+  }
+
+singleSource :: BasicTree -> DirectoryTrees
+singleSource t = DTs 1 (fmap (0,) t)
+
+instance Semigroup DirectoryTrees where
+  DTs 0 _ <> r = r
+  l <> DTs 0 _ = l
+  DTs m tl <> DTs n tr = DTs (m+n) (combine tl $ fmap (first (+m)) tr)
+    where
+    combine (File _) (File r) = File r
+    combine (Branch _ l) (Branch _ r) =
+      Branch () (unionWith combine l r)
+    combine _ _ = error "DirectoryTrees merge: File aligned with Directory"
+
+instance Monoid DirectoryTrees where
+  mempty = DTs 0 emptyDirs
 
 crawlRight
   :: Array Entry
@@ -243,3 +274,25 @@ flattenTree (Branch n (swizzle -> (_, bs))) = flats n bs
       where
       attrs = 0x400 -- directory
 
+coalesceAndNumber
+  :: [Handle]
+  -> Handle
+  -> DirectoryTrees
+  -> IO EntryTree
+coalesceAndNumber ins0 out (DTs m cmbs)
+  | m > sizeofArray ins = fail "coalesceAndNumber: insufficient input handles"
+  | otherwise = evalStateT (bitraverse d f cmbs) (-1)
+  where
+  ins = arrayFromList ins0
+
+  d _ = state \n -> (n, n+1)
+
+  f (j, fi) = StateT \n -> do
+    let hj = indexArray ins j
+    hSeek hj AbsoluteSeek . fromIntegral $ offset fi
+    cs <- L.hGet hj . fromIntegral $ packSize fi
+    off <- fromIntegral <$> hTell out
+    L.hPut out cs
+    let bs = if compressed fi then decompress cs else cs
+        CRC32 cks = digest $ L.toStrict bs
+    pure ((n, FI (compressed fi) cks (fullSize fi) (packSize fi) off), n+1)
