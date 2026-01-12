@@ -57,6 +57,10 @@ data Action
     { jsonOut :: Maybe FilePath
     , pcIn    :: FilePath
     }
+  | Json2Player
+    { pcOut  :: Maybe FilePath
+    , jsonIn :: FilePath
+    }
 
 data AnalyzeOpts
   = AO
@@ -132,6 +136,11 @@ player2json = command "player-to-json" $ info cmd desc where
   cmd = Player2Json <$> outputOpt <*> inputArg
   desc = progDesc "Turn a .ToEEPC file into a readable format"
 
+json2player :: Mod CommandFields Action
+json2player = command "json-to-player" $ info cmd desc where
+  cmd = Json2Player <$> outputOpt <*> inputArg
+  desc = progDesc "Turn a .json file into a ToEEPC"
+
 analyzeOpts :: Parser AnalyzeOpts
 analyzeOpts = AO <$> failure <*> success <*> unknown <*> proto <*> many cond
   where
@@ -166,6 +175,7 @@ acts = info (subs <**> helper) desc where
       <> mdy2mobs
       <> md2json
       <> player2json
+      <> json2player
   desc = progDesc "manipulate various ToEE MOB representations"
 
 main :: IO ()
@@ -180,7 +190,7 @@ main = customExecParser p acts >>= \case
   Mob2Mob mobIn mobOut ->
     decodeMobOrFail False mobIn >>= L.writeFile mobOut . encodeMob
   Json2Mob mout jin ->
-    parseJsonOrFail jin >>= L.writeFile mobOut . encodeMob
+    parseMobJsonOrFail jin >>= L.writeFile mobOut . encodeMob
     where
     mobOut = fromMaybe (dropExtension jin <.> "mob") mout
   AnalyzeMob {..} -> do
@@ -209,6 +219,10 @@ main = customExecParser p acts >>= \case
     Bu.writeFile out $ displayPlayer condNames plr
     where
     out = fromMaybe (pcIn <.> "json") jsonOut
+  Json2Player {..} ->
+    parsePlayerJsonOrFail jsonIn >>= L.writeFile out . encodePlayer
+    where
+    out = fromMaybe (jsonIn <.> "ToEEPC") pcOut
   where
   p = prefs showHelpOnEmpty
 
@@ -298,8 +312,11 @@ loadMobsFromDirectory loc = do
 decodeDiffsOrFail :: Map.Map UUID Mob -> FilePath -> IO [(ObjectId, MobDiff)]
 decodeDiffsOrFail mobs = decodeOrFail (decodeDiffs mobs) False
 
-parseJsonOrFail :: FilePath -> IO Mob
-parseJsonOrFail file = decodeOrFail (readMob file) False file
+parseMobJsonOrFail :: FilePath -> IO Mob
+parseMobJsonOrFail file = decodeOrFail (readMob file) False file
 
 decodePlayerOrFail :: FilePath -> IO Player
 decodePlayerOrFail = decodeOrFail decodePlayer False
+
+parsePlayerJsonOrFail :: FilePath -> IO Player
+parsePlayerJsonOrFail file = decodeOrFail (readPlayer file) False file

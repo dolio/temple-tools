@@ -18,6 +18,16 @@ module Mob
   , setMobField
   , MobDiff (..)
   , Player (..)
+  , setPlayerFlags
+  , setPlayerId
+  , setPlayerName
+  , setPlayerPortrait
+  , setPlayerGender
+  , setPlayerClass
+  , setPlayerRace
+  , setPlayerAlign
+  , setPlayerHp
+  , setPlayerData
   , ObjectId (..)
   , setObjectIdVariant
   , setObjectIdUUID
@@ -473,6 +483,39 @@ data Player
   , pcHp       :: Word32
   , pcData     :: Mob
   }
+
+setPlayerFlags :: Word32 -> Endo Player
+setPlayerFlags w = Endo \p -> p { pcFlags = w }
+
+setPlayerId :: ObjectId -> Endo Player
+setPlayerId i = Endo \p -> p { pcId = i }
+
+setPlayerName :: ByteString -> Endo Player
+setPlayerName nm = Endo \p -> p { pcName = nm }
+
+setPlayerPortrait :: Word32 -> Endo Player
+setPlayerPortrait w = Endo \p -> p { pcPortrait = w }
+
+setPlayerGender :: Word32 -> Endo Player
+setPlayerGender g = Endo \p -> p { pcGender = g }
+
+setPlayerClass :: Word32 -> Endo Player
+setPlayerClass c = Endo \p -> p { pcClass = c }
+
+setPlayerRace :: Word32 -> Endo Player
+setPlayerRace r = Endo \p -> p { pcRace = r }
+
+setPlayerAlign :: Word32 -> Endo Player
+setPlayerAlign a = Endo \p -> p { pcAlign = a }
+
+setPlayerHp :: Word32 -> Endo Player
+setPlayerHp h = Endo \p -> p { pcHp = h }
+
+setPlayerData :: Endo Mob -> Endo Player
+setPlayerData em = Endo \p -> p { pcData = appEndo em (pcData p) }
+
+instance Defaulted Player where
+  defaultVal = Player 0 defaultVal "" 0 0 0 0 0 0 defaultVal
 
 -- Object data is saved in slightly different ways in different files. This
 -- type represents those variations in the format.

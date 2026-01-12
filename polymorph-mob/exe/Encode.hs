@@ -56,6 +56,25 @@ putMob (Mob {..}) = do
   putObjectType objType
   putFields objType fields
 
+mobBitmap :: ObjectType -> Map ObjectField Value -> Bitmap
+mobBitmap ty fields = fromFields (GeneralF Location) n (Map.keysSet fields)
+  where
+  tweak (flip divMod 8 -> (d, m)) = d + if m == 0 then 0 else 1
+
+  n = tweak
+    . maximum
+    . fmap fromEnum
+    . filter (hasField ty)
+    . takeWhile (< ExtraF minBound)
+    $ [minBound .. maxBound]
+
+-- Determines how many bytes a written `Mob` will consume
+mobSize :: Mob -> Word32
+mobSize (Mob {..}) = fromIntegral $ 56 + metaSz + dataSz where
+  bm = mobBitmap objType fields
+  metaSz = 2 + 4 * countBlocks bm
+  dataSz = foldl' (\s v -> s + valueSize v) 0 fields
+
 putObjectType :: ObjectType -> Put
 putObjectType = putWord32le . fromIntegral . fromEnum
 
@@ -68,22 +87,56 @@ putObjectInfo (ObjInfo {..}) = do
 
 putFields :: ObjectType -> Map ObjectField Value -> Put
 putFields ty fields = do
-  let bm = fromFields (GeneralF Location) n (Map.keysSet fields)
   putWord16le . fromIntegral $ countSet bm
   putBitmap bm
   traverse_ (uncurry putField) $ Map.toList fields
   where
-  tweak (flip divMod 8 -> (d, m)) = d + if m == 0 then 0 else 1
-
-  n = tweak
-    . maximum
-    . fmap fromEnum
-    . filter (hasField ty)
-    . takeWhile (< ExtraF minBound)
-    $ [minBound .. maxBound]
+  bm = mobBitmap ty fields
 
 putField :: ObjectField -> Value -> Put
 putField f = putFieldByType (fieldName f) (fieldType f)
+
+valueSize :: Value -> Int
+valueSize = \case
+  Null -> 1
+  W32 _ -> 4
+  Loc _ -> 9
+  W64 _ -> 9
+  I32 _ -> 4
+  F32 _ -> 4
+  B32 _ -> 4
+  Obj _ -> 25
+  I32Arr a -> arraySize 4 a
+  W32Arr a -> arraySize 4 a
+  W64Arr a -> arraySize 8 a
+  CondArr a -> arraySize 4 a
+  ObjArr a -> arraySize 24 a
+  ScriptArr m
+    | Map.null m -> 1
+    | otherwise -> 21 + 12 * Map.size m
+  StandptArr a -> 13 + 80*ln + arrayBitmapSize bm where
+    ln = length $ content a
+    bm | Sparse {..} <- a = _bitmap
+       | otherwise = denseBitmap (10 * ln)
+  SkillArr m
+    | Map.null m -> 1
+    | otherwise -> 13 + 4*ln + arrayBitmapSize bm where
+      ln = Map.size m
+      bm = fromFields minBound 6 $ Map.keysSet m
+  WayptArr wa -> 29 + 64*ln + arrayBitmapSize bm where
+    ln = length $ waypts wa
+    bm = denseBitmap (8*ln + 2)
+  String str -> 6 + BS.length str
+  SpellArr a -> arraySize 32 a
+
+-- Calculates the bytes that will be used by writing an array bitmap
+arrayBitmapSize :: Bitmap -> Int
+arrayBitmapSize bm = 4 + 4 * max 2 (countBlocks bm)
+
+arraySize :: Int -> Array e -> Int
+arraySize elemSize arr = 13 + elemSize*ln + arrayBitmapSize (bitmap arr)
+  where
+  ln = length $ content arr
 
 shortCircuits :: Set.Set FieldType
 shortCircuits =
@@ -116,9 +169,10 @@ putFieldByType name = \cases
   StandptArrF (StandptArr sps) -> putStandpointArray sps
   WayptArrF   (WayptArr wps)   -> putWaypointArray wps
   AbilityArrF (I32Arr is)      -> putArray 4 putInt32le is
+  AbilityArrF (W32Arr is)      -> putArray 4 putWord32le is
   ScriptArrF  (ScriptArr ss)   -> putScriptArray ss
   SkillArrF   (SkillArr sks)   -> putSkillArray sks
-
+  SpellArrF   (SpellArr sps)   -> putArray 32 putSpellData sps
   _           vl ->
     error $ "bad value for " <> name <> ": " ++ show vl
 
@@ -216,6 +270,30 @@ putSkillArray m
     traverse_ putWord32le $ Map.elems m
     putArrayBitmap . fromFields minBound 6 $ Map.keysSet m
 
+putSpellData :: SpellData -> Put
+putSpellData (Spell {..}) = do
+  putWord32le spellEnum
+  putWord32le spellClass
+  putWord32le spellLevel
+  putSpellType spellType
+  putWord8 $ if spellUsed then 1 else 0
+  putWord16le 0 -- padding
+  putMetaMagic spellMeta
+  putWord32le spellInd1
+  putWord32le spellInd2
+  putWord32le spellInd3
+
+putSpellType :: SpellType -> Put
+putSpellType ty = putWord8 case ty of
+  SpellNone -> 0
+  SpellKnown -> 1
+  SpellMemorized -> 2
+  SpellCast -> 3
+  SpellAtWill -> 4
+
+putMetaMagic :: Metamagic -> Put
+putMetaMagic (Mm w) = putWord32le w
+
 putLoc :: Loc -> Put
 putLoc (L {..}) = putInt32le locx *> putInt32le locy
 
@@ -228,9 +306,30 @@ putScript (Script i j k) =
 
 putString :: BS.ByteString -> Put
 putString bs = do
-  putWord32le . fromIntegral $ BS.length bs
-  putByteString bs
+  putSzString bs
   putWord8 0
 
+putSzString :: BS.ByteString -> Put
+putSzString bs = do
+  putWord32le . fromIntegral $ BS.length bs
+  putByteString bs
+
+putPlayer :: Player -> Put
+putPlayer (Player {..}) = do
+  putWord32le pcFlags
+  putWord32le $ mobSize pcData
+  putObjectId pcId
+  putSzString pcName
+  putWord32le pcPortrait
+  putWord32le pcGender
+  putWord32le pcClass
+  putWord32le pcRace
+  putWord32le pcAlign
+  putWord32le pcHp
+  putMob pcData
+
 encodeMob :: Mob -> L.ByteString
-encodeMob m = runPut $ putMob m
+encodeMob = runPut . putMob
+
+encodePlayer :: Player -> L.ByteString
+encodePlayer = runPut . putPlayer
