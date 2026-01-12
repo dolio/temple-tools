@@ -100,6 +100,14 @@ This handles created character files, either `.ToEEPC` or `.ToEEIMan`. These
 contain mob data for the character with some extra player character
 information. The full set of information is output to the JSON file.
 
+### json-to-player
+
+This turns the above JSON dumps of player files back into player files. Files
+run back and forth through the tool will be roughly the same, but some garbage
+data will be zeroed out in the result. This could be used as a rudimentary
+character editor if desired (although knowledge of the meaning of all the
+fields is necessary).
+
 ## Conditions
 
 Conditions are stored in MOB files according to their ELF hash, which is a
